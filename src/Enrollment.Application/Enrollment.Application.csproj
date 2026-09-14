@@ -4,4 +4,8 @@
     <ProjectReference Include="..\Enrollment.Domain\Enrollment.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="CSharpFunctionalExtensions" />
+  </ItemGroup>
+
 </Project>

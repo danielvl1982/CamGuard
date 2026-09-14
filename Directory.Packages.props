@@ -6,6 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Domain building blocks -->
+    <PackageVersion Include="CSharpFunctionalExtensions" Version="3.7.0" />
+
     <!-- Face embedding -->
     <PackageVersion Include="FaceAiSharp" Version="0.6.35" />
     <PackageVersion Include="FaceAiSharp.Bundle" Version="0.6.35" />

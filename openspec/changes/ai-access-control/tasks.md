@@ -50,25 +50,29 @@ Chain strategy: stacked-to-main (user-confirmed)
 
 ## Phase 3: Domain (`src/Enrollment.Domain`)
 
-- [ ] 3.1 Create `MemberId.cs` — sealed record, rejects `Guid.Empty`
-- [ ] 3.2 Create `FaceEmbedding.cs` — `FromVector(float[])` validates dimension (per 2.6) + non-zero vector
-- [ ] 3.3 Create `Member.cs` : `EntityBase<MemberId>` — `Enroll(...)` returns `Result<Member, MemberError>`, raises `MemberEnrolled`
-- [ ] 3.4 Create `MemberEnrolled.cs` domain event
-- [ ] 3.5 Create `IMemberVectorRepository.cs` port — `SaveAsync`, `FindNearestAsync`
+- [x] 3.1 Create `MemberId.cs` — sealed record, rejects `Guid.Empty`
+- [x] 3.2 Create `FaceEmbedding.cs` — `FromVector(float[])` validates dimension (per 2.6) + non-zero vector
+- [x] 3.3 Create `Member.cs` : `EntityBase<MemberId>` — `Enroll(...)` returns `Result<Member, MemberError>`, raises `MemberEnrolled`
+- [x] 3.4 Create `MemberEnrolled.cs` domain event
+- [x] 3.5 Create `IMemberVectorRepository.cs` port — `SaveAsync`, `FindNearestAsync`
+
+**PR 2 note on `EntityBase<TId>`:** design.md specifies `Member : EntityBase<MemberId>` but no task creates that base class. It did not exist anywhere in the repo. Added `src/Enrollment.Domain/EntityBase.cs` (extends `CSharpFunctionalExtensions.Entity<TId>` with a domain-event list, per the `entity-model` skill's "entity with domain events" base) and `IDomainEvent.cs`, both in `Enrollment.Domain` since no shared-kernel project is in scope yet and `Common` is explicitly restricted to technical config, never business/domain-modeling types. `CSharpFunctionalExtensions` 3.7.0 was added to `Directory.Packages.props` (not previously referenced anywhere) to provide `Entity<TId>` and `Result<TValue, TError>`, both used throughout Domain/Application per design.md's `Result<Member, MemberError>`/`Result<FaceEmbedding, FaceExtractionError>` signatures. `Entity<TId>` constrains `TId : IComparable<TId>`, so `MemberId` implements `IComparable<MemberId>`.
 
 ## Phase 4: Infrastructure Ports/Adapters (after Phase 2 gate + Phase 3)
 
-- [ ] 4.1 Create `src/Enrollment.Application/IFaceEmbeddingExtractor.cs` + `FaceExtractionError` enum
+- [x] 4.1 Create `src/Enrollment.Application/IFaceEmbeddingExtractor.cs` + `FaceExtractionError` enum
 - [ ] 4.2 Add FaceAiSharp refs to `src/Enrollment.Infrastructure/Enrollment.Infrastructure.csproj`
 - [ ] 4.3 Create `FaceAiSharpEmbeddingExtractor.cs` — SCRFD gate (reject 0/2+ faces) + ArcFace embedding
 - [ ] 4.4 Add CommunityToolkit.VectorData.SqliteVec + Microsoft.Data.Sqlite refs to Infrastructure csproj
 - [ ] 4.5 Create `SqliteVecMemberRepository.cs` — vector-store record + Infrastructure-only mapper from `Member`
 - [ ] 4.6 Create `src/Common/VectorStoreOptions.cs`
 
+**PR 2 note — task 4.1 pulled forward from PR3 scope:** 4.1 is numbered under "Phase 4: Infrastructure" but its file target (`src/Enrollment.Application/IFaceEmbeddingExtractor.cs`) is the Application-layer port itself, not the FaceAiSharp adapter. `RegisterMemberCommandHandler` (task 5.1) structurally requires this port to compile, and the port has zero reference to FaceAiSharp/Infrastructure — matching PR2's acquired evidence-goal ("zero external I/O dependency"). Implemented only the interface + `FaceExtractionError` enum (already fully specified in design.md's "Ports and Adapters" section); 4.2–4.6 (actual FaceAiSharp/SqliteVec Infrastructure adapters, still PR3 scope) were NOT started.
+
 ## Phase 5: Application (`src/Enrollment.Application`)
 
-- [ ] 5.1 Create `RegisterMemberCommand.cs` + `RegisterMemberCommandHandler.cs` (extract → `Member.Enroll` → save)
-- [ ] 5.2 Create `QueryByEmbeddingQuery.cs` + `QueryByEmbeddingQueryHandler.cs` (`FromVector` validate → `FindNearestAsync`)
+- [x] 5.1 Create `RegisterMemberCommand.cs` + `RegisterMemberCommandHandler.cs` (extract → `Member.Enroll` → save)
+- [x] 5.2 Create `QueryByEmbeddingQuery.cs` + `QueryByEmbeddingQueryHandler.cs` (`FromVector` validate → `FindNearestAsync`)
 
 ## Phase 6: PublicApi (`src/Enrollment.PublicApi`)
 
@@ -87,9 +91,11 @@ Chain strategy: stacked-to-main (user-confirmed)
 
 ## Phase 9: Tests (AutoMocker, per spec scenarios)
 
-- [ ] 9.1 `tests/Enrollment.UnitTests/MemberTests.cs` — `Member.Enroll` invariants
-- [ ] 9.2 `tests/Enrollment.UnitTests/FaceEmbeddingTests.cs` — dimension/zero-vector validation
-- [ ] 9.3 `tests/Enrollment.UnitTests/RegisterMemberCommandHandlerTests.cs` — covers member-enrollment scenarios (zero/multiple-face rejection, atomic persistence, happy path)
-- [ ] 9.4 `tests/Enrollment.UnitTests/QueryByEmbeddingQueryHandlerTests.cs` — covers member-directory-query scenarios (best match, determinism, no-match, round-trip)
+- [x] 9.1 `tests/Enrollment.UnitTests/MemberTests.cs` — `Member.Enroll` invariants
+- [x] 9.2 `tests/Enrollment.UnitTests/FaceEmbeddingTests.cs` — dimension/zero-vector validation
+- [x] 9.3 `tests/Enrollment.UnitTests/RegisterMemberCommandHandlerTests.cs` — covers member-enrollment scenarios (zero/multiple-face rejection, atomic persistence, happy path)
+- [x] 9.4 `tests/Enrollment.UnitTests/QueryByEmbeddingQueryHandlerTests.cs` — covers member-directory-query scenarios (best match, determinism, no-match, round-trip)
 - [ ] 9.5 `tests/Enrollment.UnitTests/MemberDirectoryReaderTests.cs` — Public API Boundary scenario
 - [ ] 9.6 `tests/Enrollment.UnitTests/SqliteVecMemberRepositoryTests.cs` — round-trip against temp SQLite file, not mocked
+
+**PR 2 note:** 9.1–9.4 were implemented alongside their production code (3.1–3.5/5.1–5.2) rather than deferred, since PR2's acquired evidence-goal and the "Suggested Work Units" focused-test-command row above both require these exact test classes passing for this work unit. 9.5/9.6 stay PR3-scoped (PublicApi/Infrastructure, not built yet).
