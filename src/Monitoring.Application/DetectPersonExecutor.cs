@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using Microsoft.Agents.AI.Workflows;
+using Microsoft.Extensions.DependencyInjection;
 using Monitoring.Domain;
 
 namespace Monitoring.Application;
@@ -10,11 +12,15 @@ namespace Monitoring.Application;
 /// (wired in <see cref="MonitoringWorkflowHost"/>) routes straight to <see cref="NotifyExecutor"/>,
 /// bypassing <see cref="VerifyIdentityExecutor"/>/<see cref="DecideAccessExecutor"/> entirely.
 /// One or more detected faces proceed on the normal edge to <see cref="VerifyIdentityExecutor"/>.
+/// Emits the <c>Monitoring.DetectPerson</c> span per design.md's Observability table.
 /// </summary>
-public sealed class DetectPersonExecutor(IPersonDetector personDetector)
+public sealed class DetectPersonExecutor(
+    IPersonDetector personDetector,
+    [FromKeyedServices(MonitoringObservability.ActivitySourceName)] ActivitySource activitySource)
     : Executor<MonitoringWorkflowContext, MonitoringWorkflowContext>(nameof(DetectPersonExecutor))
 {
     private readonly IPersonDetector _personDetector = personDetector ?? throw new ArgumentNullException(nameof(personDetector));
+    private readonly ActivitySource _activitySource = activitySource ?? throw new ArgumentNullException(nameof(activitySource));
 
     public override async ValueTask<MonitoringWorkflowContext> HandleAsync(
         MonitoringWorkflowContext input,
@@ -23,7 +29,14 @@ public sealed class DetectPersonExecutor(IPersonDetector personDetector)
     {
         ArgumentNullException.ThrowIfNull(input);
 
+        using Activity? activity = _activitySource.StartActivity("Monitoring.DetectPerson");
+
         var detection = await _personDetector.DetectAsync(input.ImageStream, cancellationToken).ConfigureAwait(false);
+
+        // PersonDetectionResult models exactly one embedding per image (see IPersonDetector.cs's
+        // scoping note), so faces.detected.count is approximated as presence (0/1).
+        activity?.SetTag("faces.detected.count", detection.PersonPresent ? 1 : 0);
+        activity?.SetTag("person.present", detection.PersonPresent);
 
         if (!detection.PersonPresent)
         {
