@@ -96,4 +96,4 @@ Note: `ai-access-control`'s similarly-sized per-unit estimates still landed at 3
 Closes 2 non-blocking WARNINGs from the `pass_with_warnings` verify report (`evidence_revision: sha256:2d2ea525f75025093bba28d6709639b6722f91afb57784a81a47c64c95a43b84`). Verify had already passed; this is a voluntary quality follow-up before archiving.
 
 - [x] 8.1 Add `DecideAccessExecutorTests.cs` covering the no-match (`Distance == null`) → `Denied` branch, asserting `IAccessDecisionPolicy.Decide(...)` is `Times.Never` called
-- [ ] 8.2 Document the missing production ingestion host as an explicit, intentional out-of-scope decision in `proposal.md`'s Out of Scope list and `design.md`'s Open Questions
+- [x] 8.2 Document the missing production ingestion host as an explicit, intentional out-of-scope decision in `proposal.md`'s Out of Scope list and `design.md`'s Open Questions
