@@ -60,19 +60,19 @@ Note: `ai-access-control`'s similarly-sized per-unit estimates still landed at 3
 
 ## Phase 4: Infrastructure Adapters (`src/Monitoring.Infrastructure`)
 
-- [ ] 4.1 Create `AccessDecisionOptions.cs` (`AllowedMaxDistance`, `DeniedMinDistance`) + `WatchFolderOptions.cs`
-- [ ] 4.2 Create `AccessDecisionPolicy.cs` : `IAccessDecisionPolicy` — deterministic three-outcome boundary logic
-- [ ] 4.3 Create `LoggingNotificationService.cs` : `INotificationService` (`ILogger`-based)
-- [ ] 4.4 Create `FileSystemImageArchiver.cs` : `IImageArchiver` (moves to `processed/`/`quarantine/`)
-- [ ] 4.5 Create `FileSystemWatchIngestionSource.cs` : `IIngestionSource` — `FileSystemWatcher.Created` → bounded `Channel<string>` → debounce-retry consumer
-- [ ] 4.6 Create `FaceAiSharpPersonDetector.cs` : `IPersonDetector` — single-consumer `Channel<PersonDetectionRequest>` serializing SCRFD detect+embed calls
-- [ ] 4.7 Create `InMemoryPendingVerificationRepository.cs` : `IPendingVerificationRepository` (design's default; upgradeable later)
-- [ ] 4.8 Create `MonitoringServiceCollectionExtensions.cs` — `AddMonitoring(...)`, options validation (`AllowedMaxDistance < DeniedMinDistance`), all DI registrations
+- [x] 4.1 Create `AccessDecisionOptions.cs` (`AllowedMaxDistance`, `DeniedMinDistance`) + `WatchFolderOptions.cs`
+- [x] 4.2 Create `AccessDecisionPolicy.cs` : `IAccessDecisionPolicy` — deterministic three-outcome boundary logic
+- [x] 4.3 Create `LoggingNotificationService.cs` : `INotificationService` (`ILogger`-based)
+- [x] 4.4 Create `FileSystemImageArchiver.cs` : `IImageArchiver` (moves to `processed/`/`quarantine/`)
+- [x] 4.5 Create `FileSystemWatchIngestionSource.cs` : `IIngestionSource` — `FileSystemWatcher.Created` → bounded `Channel<string>` → debounce-retry consumer
+- [x] 4.6 Create `FaceAiSharpPersonDetector.cs` : `IPersonDetector` — single-consumer `Channel<PersonDetectionRequest>` serializing SCRFD detect+embed calls
+- [x] 4.7 Create `InMemoryPendingVerificationRepository.cs` : `IPendingVerificationRepository` (design's default; upgradeable later)
+- [x] 4.8 Create `MonitoringServiceCollectionExtensions.cs` — `AddMonitoring(...)`, options validation (`AllowedMaxDistance < DeniedMinDistance`), all DI registrations
 
 ## Phase 5: Observability
 
-- [ ] 5.1 Add `"CamGuard.Monitoring"` `ActivitySourceName` const + `AddNamedObservabilitySource` call in `AddMonitoring(...)`
-- [ ] 5.2 Instrument executors with `Monitoring.Ingest`/`DetectPerson`/`VerifyIdentity`/`Decide`/`Notify` spans + tags per design's Observability table
+- [x] 5.1 Add `"CamGuard.Monitoring"` `ActivitySourceName` const + `AddNamedObservabilitySource` call in `AddMonitoring(...)`
+- [x] 5.2 Instrument executors with `Monitoring.Ingest`/`DetectPerson`/`VerifyIdentity`/`Decide`/`Notify` spans + tags per design's Observability table
 
 ## Phase 6: Tests (`tests/Monitoring.UnitTests`)
 
