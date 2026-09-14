@@ -25,4 +25,10 @@
     <ProjectReference Include="..\..\src\Enrollment.PublicApi\Enrollment.PublicApi.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Same physical asset as src/Enrollment.Console/testdata; single source of truth, same
+         pattern as Enrollment.UnitTests.csproj (task 6.8's read-only fixture reuse). -->
+    <None Include="..\..\src\Enrollment.Console\testdata\blank-image.png" Link="testdata\blank-image.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
