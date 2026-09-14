@@ -76,17 +76,17 @@ Note: `ai-access-control`'s similarly-sized per-unit estimates still landed at 3
 
 ## Phase 6: Tests (`tests/Monitoring.UnitTests`)
 
-- [ ] 6.1 `FileSystemWatchIngestionSourceTests.cs` — new file triggers ingestion; locked file retried with backoff; one workflow run per file
-- [ ] 6.2 `FileSystemImageArchiverTests.cs` — success archives to `processed/`; failure archives to `quarantine/`
-- [ ] 6.3 `DetectPersonExecutorTests.cs` — faces proceed to verify; zero faces routes to `HumanVerificationRequired`, verify never invoked, result never silently ignored
-- [ ] 6.4 `VerifyIdentityExecutorTests.cs` — queries `IMemberDirectoryReader`; forwards `Distance` never as similarity; bit-for-bit passthrough at threshold; uses synthetic mocked embeddings of assumed `FaceEmbedding.ExpectedDimension` (still unconfirmed — do not depend on it being correct)
-- [ ] 6.5 `AccessDecisionPolicyTests.cs` — independent thresholds; `<=AllowedMaxDistance`→`Allowed`; `>=DeniedMinDistance`→`Denied`; strictly-between→`HumanVerificationRequired`; startup validation fails fast when `AllowedMaxDistance >= DeniedMinDistance`
-- [ ] 6.6 `NotifyExecutorTests.cs` — alert fired for all three outcomes including `Allowed`; alert excludes raw image bytes; notification-failure-isolation: `NotifyAsync` throws → logged, run completes, archival still invoked
-- [ ] 6.7 `PendingVerificationTests.cs` — persisted once per `HumanVerificationRequired` path (zero-face and mid-threshold); nullable fields reflect triggering path; initial status `Pending`; no automatic transition
-- [ ] 6.8 `MonitoringWorkflowIntegrationTests.cs` — temp watch root, real `FileSystemWatchIngestionSource`/`FileSystemImageArchiver`, mocked `IPersonDetector`/`IMemberDirectoryReader`; reuses `src/Enrollment.Console/testdata/blank-image.png` (read-only) fixture; asserts file moved and `NotifyAsync` invoked once
-- [ ] 6.9 Verify `dotnet test --filter Monitoring` passes
+- [x] 6.1 `FileSystemWatchIngestionSourceTests.cs` — new file triggers ingestion; locked file retried with backoff; one workflow run per file
+- [x] 6.2 `FileSystemImageArchiverTests.cs` — success archives to `processed/`; failure archives to `quarantine/`
+- [x] 6.3 `DetectPersonExecutorTests.cs` — faces proceed to verify; zero faces routes to `HumanVerificationRequired`, verify never invoked, result never silently ignored
+- [x] 6.4 `VerifyIdentityExecutorTests.cs` — queries `IMemberDirectoryReader`; forwards `Distance` never as similarity; bit-for-bit passthrough at threshold; uses synthetic mocked embeddings of assumed `FaceEmbedding.ExpectedDimension` (still unconfirmed — do not depend on it being correct)
+- [x] 6.5 `AccessDecisionPolicyTests.cs` — independent thresholds; `<=AllowedMaxDistance`→`Allowed`; `>=DeniedMinDistance`→`Denied`; strictly-between→`HumanVerificationRequired`; startup validation fails fast when `AllowedMaxDistance >= DeniedMinDistance`
+- [x] 6.6 `NotifyExecutorTests.cs` — alert fired for all three outcomes including `Allowed`; alert excludes raw image bytes; notification-failure-isolation: `NotifyAsync` throws → logged, run completes, archival still invoked
+- [x] 6.7 `PendingVerificationTests.cs` — persisted once per `HumanVerificationRequired` path (zero-face and mid-threshold); nullable fields reflect triggering path; initial status `Pending`; no automatic transition
+- [x] 6.8 `MonitoringWorkflowIntegrationTests.cs` — temp watch root, real `FileSystemWatchIngestionSource`/`FileSystemImageArchiver`, mocked `IPersonDetector`/`IMemberDirectoryReader`; reuses `src/Enrollment.Console/testdata/blank-image.png` (read-only) fixture; asserts file moved and `NotifyAsync` invoked once
+- [x] 6.9 Verify `dotnet test --filter Monitoring` passes
 
 ## Phase 7: Verification
 
-- [ ] 7.1 Verify `Monitoring.*` project references resolve to `Enrollment.PublicApi` only — no `Enrollment.Domain`/`Enrollment.Application`/`Enrollment.Infrastructure` reference exists in any `Monitoring.*.csproj`
-- [ ] 7.2 Run full `dotnet build` + `dotnet test` across the solution
+- [x] 7.1 Verify `Monitoring.*` project references resolve to `Enrollment.PublicApi` only — no `Enrollment.Domain`/`Enrollment.Application`/`Enrollment.Infrastructure` reference exists in any `Monitoring.*.csproj`
+- [x] 7.2 Run full `dotnet build` + `dotnet test` across the solution
