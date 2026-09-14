@@ -1,0 +1,49 @@
+# camguard — OpenSpec configuration (hybrid artifact store: OpenSpec + Engram)
+schema: spec-driven
+
+context: |
+  Greenfield project (empty directory, no code/git yet at init time).
+  Planned stack: .NET 10, Microsoft Agent Framework (Microsoft.Agents.AI.OpenAI,
+  Microsoft.Agents.AI.AzureAI, Microsoft.Agents.AI.Workflows, Microsoft.Agents.AI.DevUI).
+  Reference conventions from getting-started-microsoft-agent-framework-in-dotnet
+  course repo: central package management (Directory.Packages.props),
+  Directory.Build.props (net10.0, ImplicitUsings, Nullable, LangVersion latest,
+  EnablePreviewFeatures true), global.json pinning SDK 10.0.103 with
+  rollForward latestFeature, src/ per-chapter project layout (Console/DevUI).
+  No conventions or architecture decisions confirmed yet for camguard itself.
+
+strict_tdd: false  # No test runner exists yet (zero projects scaffolded). Revisit once first project is created.
+
+testing:
+  projects: []      # Empty — nothing scaffolded yet. sdd-explore/sdd-propose should re-run detection once code exists.
+  strict_tdd: false
+  note: >
+    Zero in-scope projects discovered at init (directory was completely empty).
+    Fell back to strict_tdd: false per sdd-init decision gate (no workspace-level
+    test command can exist yet). Re-detect after the first project/solution is scaffolded.
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Record any new architecture decision (project layout, DI composition root, agent workflow shape) explicitly — this is a greenfield app, first decisions set precedent
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex agent workflows (Microsoft.Agents.AI.Workflows)
+    - Document architecture decisions with rationale
+    - State central package management approach (Directory.Packages.props) and target framework (net10.0) explicitly for any new project added
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns once established; until then, follow the reference course repo's conventions (Directory.Build.props, Directory.Packages.props, global.json SDK pin)
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
