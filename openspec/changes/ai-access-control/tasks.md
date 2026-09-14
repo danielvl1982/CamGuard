@@ -61,11 +61,11 @@ Chain strategy: stacked-to-main (user-confirmed)
 ## Phase 4: Infrastructure Ports/Adapters (after Phase 2 gate + Phase 3)
 
 - [x] 4.1 Create `src/Enrollment.Application/IFaceEmbeddingExtractor.cs` + `FaceExtractionError` enum
-- [ ] 4.2 Add FaceAiSharp refs to `src/Enrollment.Infrastructure/Enrollment.Infrastructure.csproj`
-- [ ] 4.3 Create `FaceAiSharpEmbeddingExtractor.cs` — SCRFD gate (reject 0/2+ faces) + ArcFace embedding
-- [ ] 4.4 Add CommunityToolkit.VectorData.SqliteVec + Microsoft.Data.Sqlite refs to Infrastructure csproj
-- [ ] 4.5 Create `SqliteVecMemberRepository.cs` — vector-store record + Infrastructure-only mapper from `Member`
-- [ ] 4.6 Create `src/Common/VectorStoreOptions.cs`
+- [x] 4.2 Add FaceAiSharp refs to `src/Enrollment.Infrastructure/Enrollment.Infrastructure.csproj`
+- [x] 4.3 Create `FaceAiSharpEmbeddingExtractor.cs` — SCRFD gate (reject 0/2+ faces) + ArcFace embedding
+- [x] 4.4 Add CommunityToolkit.VectorData.SqliteVec + Microsoft.Data.Sqlite refs to Infrastructure csproj
+- [x] 4.5 Create `SqliteVecMemberRepository.cs` — vector-store record + Infrastructure-only mapper from `Member`
+- [x] 4.6 Create `src/Common/VectorStoreOptions.cs`
 
 **PR 2 note — task 4.1 pulled forward from PR3 scope:** 4.1 is numbered under "Phase 4: Infrastructure" but its file target (`src/Enrollment.Application/IFaceEmbeddingExtractor.cs`) is the Application-layer port itself, not the FaceAiSharp adapter. `RegisterMemberCommandHandler` (task 5.1) structurally requires this port to compile, and the port has zero reference to FaceAiSharp/Infrastructure — matching PR2's acquired evidence-goal ("zero external I/O dependency"). Implemented only the interface + `FaceExtractionError` enum (already fully specified in design.md's "Ports and Adapters" section); 4.2–4.6 (actual FaceAiSharp/SqliteVec Infrastructure adapters, still PR3 scope) were NOT started.
 
@@ -76,18 +76,18 @@ Chain strategy: stacked-to-main (user-confirmed)
 
 ## Phase 6: PublicApi (`src/Enrollment.PublicApi`)
 
-- [ ] 6.1 Create `IMemberDirectoryReader.cs` + `MemberMatch` DTO
-- [ ] 6.2 Create `MemberDirectoryReader.cs` — delegates to query handler, maps no-match
+- [x] 6.1 Create `IMemberDirectoryReader.cs` + `MemberMatch` DTO
+- [x] 6.2 Create `MemberDirectoryReader.cs` — delegates to query handler, maps no-match
 
 ## Phase 7: Composition Root / DI Wiring
 
-- [ ] 7.1 Create `AddEnrollment(...)` extension in `Enrollment.Infrastructure` — `TryAddScoped` all ports/handlers, bind `VectorStoreOptions`
-- [ ] 7.2 Create OpenTelemetry `ActivitySource`/`Meter` registration extension in `src/Common`
+- [x] 7.1 Create `AddEnrollment(...)` extension in `Enrollment.Infrastructure` — `TryAddScoped` all ports/handlers, bind `VectorStoreOptions`
+- [x] 7.2 Create OpenTelemetry `ActivitySource`/`Meter` registration extension in `src/Common`
 
 ## Phase 8: Observability
 
-- [ ] 8.1 Add `CamGuard.Enrollment` `ActivitySource` + `Enrollment.ExtractEmbedding` span (tags: faces.detected.count, outcome) in the extractor
-- [ ] 8.2 Add `Enrollment.VectorStore.Save`/`Query` spans (tags: match.score, latency) in `SqliteVecMemberRepository.cs`
+- [x] 8.1 Add `CamGuard.Enrollment` `ActivitySource` + `Enrollment.ExtractEmbedding` span (tags: faces.detected.count, outcome) in the extractor
+- [x] 8.2 Add `Enrollment.VectorStore.Save`/`Query` spans (tags: match.score, latency) in `SqliteVecMemberRepository.cs`
 
 ## Phase 9: Tests (AutoMocker, per spec scenarios)
 
@@ -95,7 +95,17 @@ Chain strategy: stacked-to-main (user-confirmed)
 - [x] 9.2 `tests/Enrollment.UnitTests/FaceEmbeddingTests.cs` — dimension/zero-vector validation
 - [x] 9.3 `tests/Enrollment.UnitTests/RegisterMemberCommandHandlerTests.cs` — covers member-enrollment scenarios (zero/multiple-face rejection, atomic persistence, happy path)
 - [x] 9.4 `tests/Enrollment.UnitTests/QueryByEmbeddingQueryHandlerTests.cs` — covers member-directory-query scenarios (best match, determinism, no-match, round-trip)
-- [ ] 9.5 `tests/Enrollment.UnitTests/MemberDirectoryReaderTests.cs` — Public API Boundary scenario
-- [ ] 9.6 `tests/Enrollment.UnitTests/SqliteVecMemberRepositoryTests.cs` — round-trip against temp SQLite file, not mocked
+- [x] 9.5 `tests/Enrollment.UnitTests/MemberDirectoryReaderTests.cs` — Public API Boundary scenario
+- [x] 9.6 `tests/Enrollment.UnitTests/SqliteVecMemberRepositoryTests.cs` — round-trip against temp SQLite file, not mocked
 
 **PR 2 note:** 9.1–9.4 were implemented alongside their production code (3.1–3.5/5.1–5.2) rather than deferred, since PR2's acquired evidence-goal and the "Suggested Work Units" focused-test-command row above both require these exact test classes passing for this work unit. 9.5/9.6 stay PR3-scoped (PublicApi/Infrastructure, not built yet).
+
+**PR 3 notes (final PR of `ai-access-control`, all 38 tasks now complete):**
+- **4.2–4.6, 6.1–6.2, 7.1–7.2, 8.1–8.2, 9.5–9.6 all implemented as specified.** All 4 API assumptions needed to write `SqliteVecMemberRepository.cs` (`SqliteCollection<TKey,TRecord>` constructor shape, `VectorStoreKey`/`VectorStoreData`/`VectorStoreVector` attributes, `SearchAsync` returning `IAsyncEnumerable<VectorSearchResult<TRecord>>`, `DistanceFunction.CosineDistance`) were verified against the actual restored NuGet package's XML doc comments (not assumed from memory) before writing code, since `CommunityToolkit.VectorData.SqliteVec` is still `-preview` and undocumented in research.md beyond package existence. First-attempt compile succeeded against those verified signatures.
+- **Distance/similarity metric resolved**: design.md's open question ("Confirm the distance/similarity metric... targeted for Phase 4") is now closed — `MemberVectorRecord.Embedding` uses `DistanceFunction.CosineDistance` (0 = identical, 2 = opposite), the standard convention for ArcFace-family embeddings. Documented on the attribute itself and in design.md.
+- **`MemberVectorRecord.Id` is `string`, not `Guid`**: `SqliteCollection<TKey,TRecord>`'s `TKey` only supports `string`/`int`/`long` (confirmed from the package's own XML docs) — `MemberId.Value.ToString()` is stored/parsed at the Infrastructure boundary; `Member`/`MemberId` (Domain) are untouched.
+- **New dependency not in original task list**: `AddEnrollment(...)` (task 7.1) needs `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Options`, `Microsoft.Extensions.Configuration.Abstractions`/`.Binder` — design.md's DI snippet assumes these are ambiently available (true only inside a full ASP.NET Core host), but `Enrollment.Infrastructure`/`Common` had zero DI-related package references before this PR. Added explicitly, pinned via CPM.
+- **Bug found and fixed via the new DI integration test, not assumed correct**: design.md's DI snippet used `.Configure<IConfiguration>((o, c) => c.GetSection(...).Bind(o))`, which resolves `IConfiguration` *from the container* — this throws `"No service for type IConfiguration has been registered"` in any host that does not auto-register `IConfiguration` as a DI service (confirmed by `EnrollmentServiceCollectionExtensionsTests` failing before the fix). Fixed to `.Configure(o => configuration.GetSection(...).Bind(o))`, closing over the `configuration` parameter `AddEnrollment` already receives — works in any host, including a bare `ServiceCollection`. This is a correction to design.md's illustrative snippet, not a deviation from intent.
+- **`Common`'s OpenTelemetry extension registers keyed `ActivitySource`/`Meter` singletons, not a full OpenTelemetry SDK pipeline**: `AddNamedObservabilitySource(string sourceName)` uses `TryAddKeyedSingleton` (keyed by module name, e.g. `"CamGuard.Enrollment"`) so a future second module (`Monitoring`) can open its own named source without colliding on the shared `ActivitySource`/`Meter` service types — plain (non-keyed) `TryAddSingleton` would let only the first caller's name win. No `OpenTelemetry`/`OpenTelemetry.Extensions.Hosting` SDK package was added: there is no host project yet to configure exporters/sampling against, and design.md's own wording ("registers a shared... extension") matches registering the instrumentation primitives, not standing up a full collector pipeline. `FaceAiSharpEmbeddingExtractor`/`SqliteVecMemberRepository` consume the keyed `ActivitySource` via `[FromKeyedServices(EnrollmentServiceCollectionExtensions.ActivitySourceName)]` constructor injection (never a static field), per `dotnet-testable-code-design`.
+- **`FaceAiSharpEmbeddingExtractor`'s testdata gap is unchanged from PR1/PR2**: no real face photo exists in this environment, so this PR could not add a "real photo → 512-dim embedding" integration test. The adapter's face-detection-gate logic (0/2+ faces → typed rejection) is proven by the existing `RegisterMemberCommandHandlerTests` (mocking the port) and by `EnrollmentServiceCollectionExtensionsTests` (proving the adapter constructs and resolves through DI without the PR1-flagged native-ONNX-Runtime crash) — but the actual embedding-extraction code path (exactly-one-face → 512-float vector) remains unexercised by an automated test. **This is a pending manual step for the user**, same as PR1/PR2 flagged: run `dotnet run --project src/Enrollment.Console -- <path-to-a-real-reference-photo>` to confirm the embedding dimension, then re-verify `FaceAiSharpEmbeddingExtractor` end-to-end with that same photo.
+- **Gap restated, still not fixed (inherited from PR2, out of this PR's scope)**: `member-enrollment` spec's multi-photo atomic-persistence scenario is still not modeled by the single-photo `RegisterMemberCommand`/`IMemberDirectoryReader` boundary built in PR2/PR3. Not touched here — Application-layer command shape is out of scope for an Infrastructure/PublicApi/DI/Observability PR.
