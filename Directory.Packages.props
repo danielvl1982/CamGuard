@@ -1,0 +1,30 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Face embedding -->
+    <PackageVersion Include="FaceAiSharp" Version="0.6.35" />
+    <PackageVersion Include="FaceAiSharp.Bundle" Version="0.6.35" />
+    <!-- Native ONNX Runtime binaries — FaceAiSharp only brings the managed bindings
+         (Microsoft.ML.OnnxRuntime.Managed transitively); the consuming app must pick
+         a native runtime package itself. CPU package, pinned to the same version
+         FaceAiSharp 0.6.35 depends on for .Managed. -->
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.26.0" />
+
+    <!-- Vector store -->
+    <PackageVersion Include="CommunityToolkit.VectorData.SqliteVec" Version="1.0.1-preview" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+
+    <!-- Testing -->
+    <PackageVersion Include="Moq.AutoMock" Version="4.0.3" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+  </ItemGroup>
+
+</Project>

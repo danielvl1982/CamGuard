@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Common/Common.csproj" />
+    <Project Path="src/Enrollment.Application/Enrollment.Application.csproj" />
+    <Project Path="src/Enrollment.Console/Enrollment.Console.csproj" />
+    <Project Path="src/Enrollment.Domain/Enrollment.Domain.csproj" />
+    <Project Path="src/Enrollment.Infrastructure/Enrollment.Infrastructure.csproj" />
+    <Project Path="src/Enrollment.PublicApi/Enrollment.PublicApi.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Enrollment.UnitTests/Enrollment.UnitTests.csproj" />
+  </Folder>
+</Solution>
