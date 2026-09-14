@@ -27,6 +27,7 @@ Modular monolith, single `.slnx`, CPM via `Directory.Packages.props`, all new pr
 | `Member` base class | `EntityBase<MemberId>` (domain events) | Plain `Entity<TId>` | `Member` raises `MemberEnrolled`, translated to an integration event for `monitoring-pipeline` later per `dotnet-modular-monolith` |
 | Public contract shape | `IMemberDirectoryReader` takes/returns primitive `float[]`/`MemberMatch` DTO, never the internal `FaceEmbedding` VO | Expose `FaceEmbedding` directly | Boundary DTOs only, per `dotnet-modular-monolith` — internal VOs never cross module boundaries |
 | Spike harness | `Enrollment.Console` calls FaceAiSharp directly, zero reference to `Enrollment.*` | Build `Enrollment.Infrastructure` first, test net10 compat through it | Proposal requires the spike pass **before** Infrastructure depends on FaceAiSharp; a dependent harness would hide a failure inside the adapter |
+| Multi-photo submission vs. single-embedding `Member` | `RegisterMemberCommand` accepts `IReadOnlyList<Stream> Photos` (non-empty); the handler extracts and gates every photo independently, and only when ALL pass does it call `Member.Enroll` with the **first** photo's embedding as the primary embedding, then persist once | Model `Member` with multiple `FaceEmbedding`s (one per photo) | `member-enrollment` spec's "Atomic Vector Persistence" requirement only mandates all-or-nothing persistence across submitted photos — it does not specify combining multiple embeddings into one record. Keeps `Member`'s existing "exactly one `FaceEmbedding`" invariant unchanged, per PR4 verify-remediation scope |
 
 ## Domain Model
 
@@ -70,18 +71,22 @@ sequenceDiagram
     participant Extractor as IFaceEmbeddingExtractor
     participant Member as Member (Domain)
     participant Repo as IMemberVectorRepository
-    Client->>Handler: RegisterMemberCommand(fullName, photoStream)
-    Handler->>Extractor: ExtractAsync(photoStream)
-    alt zero or multiple faces
-        Extractor-->>Handler: Failure(NoFaceDetected|MultipleFacesDetected)
-        Handler-->>Client: Result.Failure(error)
-    else exactly one face
-        Extractor-->>Handler: Success(FaceEmbedding)
-        Handler->>Member: Member.Enroll(id, fullName, embedding)
-        Member-->>Handler: Success(member) + MemberEnrolled
-        Handler->>Repo: SaveAsync(member)
-        Handler-->>Client: Result.Success(MemberId)
+    Client->>Handler: RegisterMemberCommand(fullName, photos[1..N])
+    loop for each submitted photo, in order
+        Handler->>Extractor: ExtractAsync(photo)
+        alt zero or multiple faces
+            Extractor-->>Handler: Failure(NoFaceDetected|MultipleFacesDetected)
+            Handler-->>Client: Result.Failure(error)
+            Note over Handler,Repo: Atomic gate — the first failing photo rejects the whole<br/>enrollment; remaining photos are never processed and<br/>SaveAsync is never called, so nothing is persisted.
+        else exactly one face
+            Extractor-->>Handler: Success(FaceEmbedding)
+        end
     end
+    Note over Handler: Reached only when every submitted photo passed the gate.
+    Handler->>Member: Member.Enroll(id, fullName, embeddings[0])
+    Member-->>Handler: Success(member) + MemberEnrolled
+    Handler->>Repo: SaveAsync(member)
+    Handler-->>Client: Result.Success(MemberId)
 ```
 
 ```mermaid
