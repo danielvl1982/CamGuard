@@ -9,11 +9,11 @@
 | Chained PRs recommended | Yes |
 | Suggested split | PR 1 (scaffold+spike) → PR 2 (Domain+Application) → PR 3 (Infra+PublicApi+DI+Observability) |
 | Delivery strategy | auto-chain |
-| Chain strategy | pending |
+| Chain strategy | stacked-to-main (user-confirmed) |
 
 Decision needed before apply: No
 Chained PRs recommended: Yes
-Chain strategy: pending
+Chain strategy: stacked-to-main (user-confirmed)
 400-line budget risk: High
 
 ### Suggested Work Units
