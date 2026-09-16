@@ -8,6 +8,7 @@
     <Project Path="src/Enrollment.PublicApi/Enrollment.PublicApi.csproj" />
     <Project Path="src/Monitoring.Application/Monitoring.Application.csproj" />
     <Project Path="src/Monitoring.Domain/Monitoring.Domain.csproj" />
+    <Project Path="src/Monitoring.Host/Monitoring.Host.csproj" />
     <Project Path="src/Monitoring.Infrastructure/Monitoring.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">

@@ -9,7 +9,7 @@ namespace Monitoring.Infrastructure;
 /// <summary>
 /// Composition root extension for the <c>Monitoring</c> module (design.md "DI / Composition
 /// Root") — mirrors <c>Enrollment.Infrastructure.EnrollmentServiceCollectionExtensions</c>: one
-/// extension method, Options bound by closing over the <paramref name="configuration"/> parameter
+/// extension method, Options bound by closing over the <c>configuration</c> parameter
 /// directly (never resolved from the container), per <c>dotnet-composition-root</c>'s "one
 /// extension method per module" rule.
 /// </summary>
@@ -18,7 +18,7 @@ public static class MonitoringServiceCollectionExtensions
     /// <summary>
     /// Re-exports <see cref="MonitoringObservability.ActivitySourceName"/> for Infrastructure
     /// consumers (<see cref="FileSystemWatchIngestionSource"/>, <see cref="FaceAiSharpPersonDetector"/>,
-    /// and this method's own <see cref="AddNamedObservabilitySource"/> call) — the canonical value
+    /// and this method's own <see cref="Common.ObservabilityServiceCollectionExtensions.AddNamedObservabilitySource"/> call) — the canonical value
     /// is defined in <c>Monitoring.Application</c> because the workflow executors need it too and
     /// Application must never reference Infrastructure (see <see cref="MonitoringObservability"/>'s doc comment).
     /// </summary>
@@ -82,6 +82,11 @@ public static class MonitoringServiceCollectionExtensions
         services.TryAddScoped<DecideAccessExecutor>();
         services.TryAddScoped<NotifyExecutor>();
         services.TryAddScoped<MonitoringWorkflowHost>();
+
+        // Drives the folder-watch → workflow → archive loop for the process lifetime (see
+        // MonitoringHostedService's doc comment); resolves the Scoped MonitoringWorkflowHost
+        // through a fresh IServiceScope per ingested file rather than depending on it directly.
+        services.AddHostedService<MonitoringHostedService>();
 
         return services;
     }
