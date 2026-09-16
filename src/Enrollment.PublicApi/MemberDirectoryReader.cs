@@ -1,5 +1,4 @@
 using Enrollment.Application;
-using Enrollment.Domain;
 
 namespace Enrollment.PublicApi;
 
@@ -19,9 +18,11 @@ public sealed class MemberDirectoryReader(QueryByEmbeddingQueryHandler queryHand
         var result = await queryHandler.HandleAsync(query, cancellationToken);
 
         if (result.IsFailure || result.Value is null)
+        {
             return null;
+        }
 
-        (MemberId id, double score) = result.Value.Value;
+        var (id, score) = result.Value.Value;
         return new MemberMatch(id.Value, score);
     }
 }

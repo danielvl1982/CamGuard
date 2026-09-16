@@ -1,11 +1,10 @@
-using System.Diagnostics;
-using CommunityToolkit.VectorData.SqliteVec;
 using Common;
+using CommunityToolkit.VectorData.SqliteVec;
 using CSharpFunctionalExtensions;
 using Enrollment.Domain;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.VectorData;
+using System.Diagnostics;
 
 namespace Enrollment.Infrastructure;
 
@@ -25,7 +24,7 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
         [FromKeyedServices(EnrollmentServiceCollectionExtensions.ActivitySourceName)] ActivitySource activitySource)
     {
         ArgumentNullException.ThrowIfNull(options);
-        VectorStoreOptions value = options.Value;
+        var value = options.Value;
 
         _activitySource = activitySource;
         _collection = new SqliteCollection<string, MemberVectorRecord>(value.ConnectionString, value.MembersCollectionName);
@@ -35,8 +34,8 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
     {
         ArgumentNullException.ThrowIfNull(member);
 
-        using Activity? activity = _activitySource.StartActivity("Enrollment.VectorStore.Save");
-        long startTimestamp = Stopwatch.GetTimestamp();
+        using var activity = _activitySource.StartActivity("Enrollment.VectorStore.Save");
+        var startTimestamp = Stopwatch.GetTimestamp();
 
         await _collection.EnsureCollectionExistsAsync(cancellationToken);
         await _collection.UpsertAsync(MemberVectorRecordMapper.FromMember(member), cancellationToken);
@@ -48,14 +47,14 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        using Activity? activity = _activitySource.StartActivity("Enrollment.VectorStore.Query");
-        long startTimestamp = Stopwatch.GetTimestamp();
+        using var activity = _activitySource.StartActivity("Enrollment.VectorStore.Query");
+        var startTimestamp = Stopwatch.GetTimestamp();
 
         await _collection.EnsureCollectionExistsAsync(cancellationToken);
 
         float[] queryVector = [.. query.Vector];
 
-        await foreach (VectorSearchResult<MemberVectorRecord> result in
+        await foreach (var result in
             _collection.SearchAsync(queryVector, top: 1, cancellationToken: cancellationToken))
         {
             activity?.SetTag("match.score", result.Score);
@@ -63,7 +62,7 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
 
             // Defensive: a record whose stored key is not a valid, non-empty Guid should never
             // surface as a match rather than throw — it indicates a corrupted/foreign record.
-            Result<MemberId, MemberIdError> memberId = Guid.TryParse(result.Record.Id, out Guid parsed)
+            var memberId = Guid.TryParse(result.Record.Id, out var parsed)
                 ? MemberId.From(parsed)
                 : Result.Failure<MemberId, MemberIdError>(MemberIdError.Empty);
 

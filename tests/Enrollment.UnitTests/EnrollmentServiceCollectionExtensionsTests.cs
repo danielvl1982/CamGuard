@@ -18,7 +18,7 @@ public sealed class EnrollmentServiceCollectionExtensionsTests
     [Fact]
     public void AddEnrollment_registers_a_resolvable_object_graph_against_a_temp_sqlite_file()
     {
-        string dbPath = Path.Combine(Path.GetTempPath(), $"camguard-di-smoke-{Guid.NewGuid():N}.db");
+        var dbPath = Path.Combine(Path.GetTempPath(), $"camguard-di-smoke-{Guid.NewGuid():N}.db");
         try
         {
             var services = new ServiceCollection();
@@ -28,8 +28,8 @@ public sealed class EnrollmentServiceCollectionExtensionsTests
 
             services.AddEnrollment(configuration);
 
-            using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
-            using IServiceScope scope = provider.CreateScope();
+            using var provider = services.BuildServiceProvider(validateScopes: true);
+            using var scope = provider.CreateScope();
 
             var reader = scope.ServiceProvider.GetRequiredService<IMemberDirectoryReader>();
             var registerHandler = scope.ServiceProvider.GetRequiredService<RegisterMemberCommandHandler>();

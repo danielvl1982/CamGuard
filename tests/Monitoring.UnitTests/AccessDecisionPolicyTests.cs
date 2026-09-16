@@ -22,9 +22,9 @@ public sealed class AccessDecisionPolicyTests
     [InlineData(0.35)]
     public void Distance_at_or_below_AllowedMaxDistance_resolves_Allowed(double distance)
     {
-        AccessDecisionPolicy policy = CreatePolicy(allowedMax: 0.35, deniedMin: 0.55);
+        var policy = CreatePolicy(allowedMax: 0.35, deniedMin: 0.55);
 
-        AccessDecisionResult result = policy.Decide(distance);
+        var result = policy.Decide(distance);
 
         Assert.Equal(AccessOutcome.Allowed, result.Outcome);
         Assert.Equal(distance, result.Distance);
@@ -36,9 +36,9 @@ public sealed class AccessDecisionPolicyTests
     [InlineData(1.0)]
     public void Distance_at_or_above_DeniedMinDistance_resolves_Denied(double distance)
     {
-        AccessDecisionPolicy policy = CreatePolicy(allowedMax: 0.35, deniedMin: 0.55);
+        var policy = CreatePolicy(allowedMax: 0.35, deniedMin: 0.55);
 
-        AccessDecisionResult result = policy.Decide(distance);
+        var result = policy.Decide(distance);
 
         Assert.Equal(AccessOutcome.Denied, result.Outcome);
         Assert.Equal(distance, result.Distance);
@@ -50,9 +50,9 @@ public sealed class AccessDecisionPolicyTests
     [InlineData(0.54)]
     public void Distance_strictly_between_thresholds_resolves_HumanVerificationRequired(double distance)
     {
-        AccessDecisionPolicy policy = CreatePolicy(allowedMax: 0.35, deniedMin: 0.55);
+        var policy = CreatePolicy(allowedMax: 0.35, deniedMin: 0.55);
 
-        AccessDecisionResult result = policy.Decide(distance);
+        var result = policy.Decide(distance);
 
         Assert.Equal(AccessOutcome.HumanVerificationRequired, result.Outcome);
         Assert.Equal(distance, result.Distance);
@@ -70,7 +70,7 @@ public sealed class AccessDecisionPolicyTests
             .Build();
 
         services.AddMonitoring(configuration);
-        using ServiceProvider provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
         Assert.Throws<OptionsValidationException>(() =>
             provider.GetRequiredService<IOptions<AccessDecisionOptions>>().Value);
@@ -88,9 +88,9 @@ public sealed class AccessDecisionPolicyTests
             .Build();
 
         services.AddMonitoring(configuration);
-        using ServiceProvider provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
-        AccessDecisionOptions options = provider.GetRequiredService<IOptions<AccessDecisionOptions>>().Value;
+        var options = provider.GetRequiredService<IOptions<AccessDecisionOptions>>().Value;
 
         Assert.Equal(0.35, options.AllowedMaxDistance);
         Assert.Equal(0.55, options.DeniedMinDistance);

@@ -32,13 +32,13 @@ public sealed class MemberDirectoryReaderTests
     [Fact]
     public async Task Consumer_holding_only_the_reader_gets_the_closest_member_match()
     {
-        (IMemberDirectoryReader reader, Mock<IMemberVectorRepository> repositoryMock) = CreateReader();
+        var (reader, repositoryMock) = CreateReader();
         var memberId = MemberId.New();
         repositoryMock
             .Setup(x => x.FindNearestAsync(It.IsAny<FaceEmbedding>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((memberId, 0.95));
 
-        MemberMatch? match = await reader.FindBestMatchAsync(ValidVector(), CancellationToken.None);
+        var match = await reader.FindBestMatchAsync(ValidVector(), CancellationToken.None);
 
         Assert.NotNull(match);
         Assert.Equal(memberId.Value, match!.MemberId);
@@ -48,12 +48,12 @@ public sealed class MemberDirectoryReaderTests
     [Fact]
     public async Task Consumer_holding_only_the_reader_gets_an_explicit_null_for_no_match()
     {
-        (IMemberDirectoryReader reader, Mock<IMemberVectorRepository> repositoryMock) = CreateReader();
+        var (reader, repositoryMock) = CreateReader();
         repositoryMock
             .Setup(x => x.FindNearestAsync(It.IsAny<FaceEmbedding>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(((MemberId Id, double Score)?)null);
 
-        MemberMatch? match = await reader.FindBestMatchAsync(ValidVector(), CancellationToken.None);
+        var match = await reader.FindBestMatchAsync(ValidVector(), CancellationToken.None);
 
         Assert.Null(match);
     }

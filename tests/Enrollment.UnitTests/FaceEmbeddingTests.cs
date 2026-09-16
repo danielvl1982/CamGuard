@@ -26,7 +26,9 @@ public sealed class FaceEmbeddingTests
     {
         var vector = new float[length];
         if (length > 0)
+        {
             vector[0] = 1f;
+        }
 
         var result = FaceEmbedding.FromVector(vector);
 

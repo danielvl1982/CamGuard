@@ -46,10 +46,14 @@ public sealed record FaceEmbedding
         ArgumentNullException.ThrowIfNull(vector);
 
         if (vector.Length != ExpectedDimension)
+        {
             return Result.Failure<FaceEmbedding, FaceEmbeddingError>(FaceEmbeddingError.InvalidDimension);
+        }
 
         if (Array.TrueForAll(vector, static component => component == 0f))
+        {
             return Result.Failure<FaceEmbedding, FaceEmbeddingError>(FaceEmbeddingError.ZeroVector);
+        }
 
         return Result.Success<FaceEmbedding, FaceEmbeddingError>(new FaceEmbedding(vector));
     }

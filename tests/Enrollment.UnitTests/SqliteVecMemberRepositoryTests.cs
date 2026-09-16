@@ -20,7 +20,7 @@ public sealed class SqliteVecMemberRepositoryTests : IDisposable
     public SqliteVecMemberRepositoryTests()
     {
         _dbPath = Path.Combine(Path.GetTempPath(), $"camguard-enrollment-test-{Guid.NewGuid():N}.db");
-        IOptions<VectorStoreOptions> options = Options.Create(new VectorStoreOptions
+        var options = Options.Create(new VectorStoreOptions
         {
             ConnectionString = $"Data Source={_dbPath}",
             MembersCollectionName = "members_test"
@@ -31,11 +31,11 @@ public sealed class SqliteVecMemberRepositoryTests : IDisposable
     [Fact]
     public async Task Enrolled_member_is_retrievable_by_a_query_with_its_own_embedding()
     {
-        FaceEmbedding embedding = FaceEmbedding.FromVector(ValidVector(0.8f)).Value;
-        Member member = Member.Enroll(MemberId.New(), "Ada Lovelace", embedding).Value;
+        var embedding = FaceEmbedding.FromVector(ValidVector(0.8f)).Value;
+        var member = Member.Enroll(MemberId.New(), "Ada Lovelace", embedding).Value;
 
         await _repository.SaveAsync(member, CancellationToken.None);
-        (MemberId Id, double Score)? match = await _repository.FindNearestAsync(embedding, CancellationToken.None);
+        var match = await _repository.FindNearestAsync(embedding, CancellationToken.None);
 
         Assert.NotNull(match);
         Assert.Equal(member.Id, match!.Value.Id);
@@ -44,9 +44,9 @@ public sealed class SqliteVecMemberRepositoryTests : IDisposable
     [Fact]
     public async Task Query_against_an_empty_store_returns_no_match()
     {
-        FaceEmbedding embedding = FaceEmbedding.FromVector(ValidVector(0.5f)).Value;
+        var embedding = FaceEmbedding.FromVector(ValidVector(0.5f)).Value;
 
-        (MemberId Id, double Score)? match = await _repository.FindNearestAsync(embedding, CancellationToken.None);
+        var match = await _repository.FindNearestAsync(embedding, CancellationToken.None);
 
         Assert.Null(match);
     }
@@ -62,7 +62,9 @@ public sealed class SqliteVecMemberRepositoryTests : IDisposable
     {
         SqliteConnection.ClearAllPools();
         if (!File.Exists(_dbPath))
+        {
             return;
+        }
 
         try
         {

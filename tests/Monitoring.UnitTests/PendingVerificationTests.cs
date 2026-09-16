@@ -68,7 +68,7 @@ public sealed class PendingVerificationTests
         // PendingVerificationStatus defines exactly one value, so no code path anywhere in this
         // module can move a record out of Pending — resolving requires a future, out-of-scope
         // write path that would need to add a new status value first.
-        PendingVerificationStatus[] statusValues = Enum.GetValues<PendingVerificationStatus>();
+        var statusValues = Enum.GetValues<PendingVerificationStatus>();
 
         Assert.Single(statusValues);
         Assert.Equal(PendingVerificationStatus.Pending, statusValues[0]);
@@ -95,7 +95,7 @@ public sealed class PendingVerificationPersistenceTests
     [Fact]
     public async Task Zero_face_path_persists_exactly_one_record_with_null_distance_and_candidate()
     {
-        AutoMocker mocker = CreateMocker();
+        var mocker = CreateMocker();
         var decision = new AccessDecisionResult(AccessOutcome.HumanVerificationRequired, Distance: null, Reason: "No face detected");
         var input = new MonitoringWorkflowContext(
             "processed/zero-face.png", Stream.Null, EmbeddingVector: null, CandidateMemberId: null, Distance: null, decision);
@@ -117,7 +117,7 @@ public sealed class PendingVerificationPersistenceTests
     [Fact]
     public async Task Mid_threshold_path_persists_exactly_one_record_with_distance_and_candidate()
     {
-        AutoMocker mocker = CreateMocker();
+        var mocker = CreateMocker();
         var candidateMemberId = Guid.NewGuid();
         var decision = new AccessDecisionResult(AccessOutcome.HumanVerificationRequired, Distance: 0.45, Reason: "Distance strictly between configured thresholds");
         var input = new MonitoringWorkflowContext(
@@ -141,7 +141,7 @@ public sealed class PendingVerificationPersistenceTests
     [InlineData(AccessOutcome.Denied)]
     public async Task Non_HumanVerificationRequired_outcomes_never_persist_a_record(AccessOutcome outcome)
     {
-        AutoMocker mocker = CreateMocker();
+        var mocker = CreateMocker();
         var decision = new AccessDecisionResult(outcome, Distance: 0.2, Reason: "test");
         var input = new MonitoringWorkflowContext(
             "processed/other.png", Stream.Null, EmbeddingVector: null, CandidateMemberId: null, Distance: 0.2, decision);

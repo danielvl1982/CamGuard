@@ -6,23 +6,23 @@ using FaceAiSharp;
 
 if (args.Length != 1)
 {
-    System.Console.Error.WriteLine("Usage: dotnet run --project src/Enrollment.Console -- <imagePath>");
+    Console.Error.WriteLine("Usage: dotnet run --project src/Enrollment.Console -- <imagePath>");
     return 1;
 }
 
-string imagePath = args[0];
+var imagePath = args[0];
 
-IFaceDetectorWithLandmarks detector = FaceAiSharpBundleFactory.CreateFaceDetectorWithLandmarks();
-IFaceEmbeddingsGenerator embeddingsGenerator = FaceAiSharpBundleFactory.CreateFaceEmbeddingsGenerator();
+var detector = FaceAiSharpBundleFactory.CreateFaceDetectorWithLandmarks();
+var embeddingsGenerator = FaceAiSharpBundleFactory.CreateFaceEmbeddingsGenerator();
 
 var spike = new FaceAiSharpSpike(detector, embeddingsGenerator);
-FaceAiSharpSpikeResult result = spike.Run(imagePath);
+var result = spike.Run(imagePath);
 
-System.Console.WriteLine($"Outcome: {result.Outcome}");
-System.Console.WriteLine($"Faces detected: {result.FacesDetected}");
+Console.WriteLine($"Outcome: {result.Outcome}");
+Console.WriteLine($"Faces detected: {result.FacesDetected}");
 if (result.Embedding is not null)
 {
-    System.Console.WriteLine($"Embedding dimension: {result.Embedding.Length}");
+    Console.WriteLine($"Embedding dimension: {result.Embedding.Length}");
 }
 
 return result.Outcome == FaceAiSharpSpikeOutcome.Success ? 0 : 1;

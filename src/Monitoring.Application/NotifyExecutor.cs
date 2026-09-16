@@ -1,8 +1,8 @@
-using System.Diagnostics;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Monitoring.Domain;
+using System.Diagnostics;
 
 namespace Monitoring.Application;
 
@@ -53,11 +53,11 @@ public sealed class NotifyExecutor(
     public override async ValueTask<bool> HandleAsync(
         MonitoringWorkflowContext input,
         IWorkflowContext context,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(input);
 
-        using Activity? activity = _activitySource.StartActivity("Monitoring.Notify");
+        using var activity = _activitySource.StartActivity($"{nameof(Monitoring)}.Notify");
 
         var decision = input.Decision
             ?? throw new InvalidOperationException($"{nameof(NotifyExecutor)} requires a resolved {nameof(AccessDecisionResult)}.");

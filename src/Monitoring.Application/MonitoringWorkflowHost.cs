@@ -30,8 +30,8 @@ public sealed class MonitoringWorkflowHost
         var notify = notifyExecutor.BindExecutor();
 
         Workflow = new WorkflowBuilder(detect)
-            .AddEdge<MonitoringWorkflowContext>(detect, verify, ctx => ctx.Decision is null)
-            .AddEdge<MonitoringWorkflowContext>(detect, notify, ctx => ctx.Decision is not null)
+            .AddEdge<MonitoringWorkflowContext>(detect, verify, ctx => ctx?.Decision is null)
+            .AddEdge<MonitoringWorkflowContext>(detect, notify, ctx => ctx?.Decision is not null)
             .AddEdge(verify, decide)
             .AddEdge(decide, notify)
             .WithOutputFrom(notify)

@@ -29,7 +29,9 @@ public sealed class Member : EntityBase<MemberId>
         ArgumentNullException.ThrowIfNull(embedding);
 
         if (string.IsNullOrWhiteSpace(fullName))
+        {
             return Result.Failure<Member, MemberError>(MemberError.EmptyFullName);
+        }
 
         var member = new Member(id, fullName, embedding);
         member.Raise(new MemberEnrolled(id));

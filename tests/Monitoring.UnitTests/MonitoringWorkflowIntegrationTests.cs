@@ -33,7 +33,7 @@ public sealed class MonitoringWorkflowIntegrationTests
     [Fact]
     public async Task Dropped_file_is_archived_and_notified_exactly_once()
     {
-        string watchRoot = Directory.CreateTempSubdirectory("camguard-integration-").FullName;
+        var watchRoot = Directory.CreateTempSubdirectory("camguard-integration-").FullName;
         try
         {
             var watchFolderOptions = Options.Create(new WatchFolderOptions
@@ -79,28 +79,28 @@ public sealed class MonitoringWorkflowIntegrationTests
             var archiver = new FileSystemImageArchiver(watchFolderOptions);
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            await using IAsyncEnumerator<string> enumerator = ingestionSource.WatchAsync(cts.Token).GetAsyncEnumerator(cts.Token);
-            Task<bool> moveNextTask = enumerator.MoveNextAsync().AsTask();
+            await using var enumerator = ingestionSource.WatchAsync(cts.Token).GetAsyncEnumerator(cts.Token);
+            var moveNextTask = enumerator.MoveNextAsync().AsTask();
 
             await Task.Delay(200); // let the watcher attach before the fixture is copied in
-            string droppedPath = Path.Combine(watchRoot, "dropped.png");
+            var droppedPath = Path.Combine(watchRoot, "dropped.png");
             File.Copy(FixtureImagePath, droppedPath);
 
             Assert.True(await moveNextTask);
-            string validatedPath = enumerator.Current;
+            var validatedPath = enumerator.Current;
             Assert.Equal(droppedPath, validatedPath);
 
             bool workflowCompleted;
-            await using (FileStream imageStream = File.OpenRead(validatedPath))
+            await using (var imageStream = File.OpenRead(validatedPath))
             {
                 var input = new MonitoringWorkflowContext(validatedPath, imageStream, null, null, null, null);
-                await using Run run = await InProcessExecution.RunAsync(host.Workflow, input, cancellationToken: cts.Token);
+                await using var run = await InProcessExecution.RunAsync(host.Workflow, input, cancellationToken: cts.Token);
                 workflowCompleted = run.OutgoingEvents.OfType<WorkflowOutputEvent>().Single().As<bool>();
             } // stream closed before archival — File.Move requires an unlocked file
 
             Assert.True(workflowCompleted);
 
-            string archivedPath = await archiver.MoveToProcessedAsync(validatedPath, CancellationToken.None);
+            var archivedPath = await archiver.MoveToProcessedAsync(validatedPath, CancellationToken.None);
 
             Assert.False(File.Exists(droppedPath));
             Assert.True(File.Exists(archivedPath));

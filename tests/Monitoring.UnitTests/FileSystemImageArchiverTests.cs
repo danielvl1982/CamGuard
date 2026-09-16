@@ -15,14 +15,14 @@ public sealed class FileSystemImageArchiverTests
     [Fact]
     public async Task MoveToProcessedAsync_moves_the_file_into_the_processed_subfolder()
     {
-        string root = Directory.CreateTempSubdirectory("camguard-archiver-").FullName;
+        var root = Directory.CreateTempSubdirectory("camguard-archiver-").FullName;
         try
         {
-            string sourcePath = Path.Combine(root, "success.png");
+            var sourcePath = Path.Combine(root, "success.png");
             await File.WriteAllBytesAsync(sourcePath, [1, 2, 3]);
-            FileSystemImageArchiver archiver = CreateArchiver(root);
+            var archiver = CreateArchiver(root);
 
-            string archivedPath = await archiver.MoveToProcessedAsync(sourcePath, CancellationToken.None);
+            var archivedPath = await archiver.MoveToProcessedAsync(sourcePath, CancellationToken.None);
 
             Assert.Equal(Path.Combine(root, "processed", "success.png"), archivedPath);
             Assert.True(File.Exists(archivedPath));
@@ -37,14 +37,14 @@ public sealed class FileSystemImageArchiverTests
     [Fact]
     public async Task MoveToQuarantineAsync_moves_the_file_into_the_quarantine_subfolder()
     {
-        string root = Directory.CreateTempSubdirectory("camguard-archiver-").FullName;
+        var root = Directory.CreateTempSubdirectory("camguard-archiver-").FullName;
         try
         {
-            string sourcePath = Path.Combine(root, "failure.png");
+            var sourcePath = Path.Combine(root, "failure.png");
             await File.WriteAllBytesAsync(sourcePath, [1, 2, 3]);
-            FileSystemImageArchiver archiver = CreateArchiver(root);
+            var archiver = CreateArchiver(root);
 
-            string archivedPath = await archiver.MoveToQuarantineAsync(sourcePath, CancellationToken.None);
+            var archivedPath = await archiver.MoveToQuarantineAsync(sourcePath, CancellationToken.None);
 
             Assert.Equal(Path.Combine(root, "quarantine", "failure.png"), archivedPath);
             Assert.True(File.Exists(archivedPath));
@@ -59,12 +59,12 @@ public sealed class FileSystemImageArchiverTests
     [Fact]
     public async Task MoveToProcessedAsync_creates_the_processed_subfolder_when_missing()
     {
-        string root = Directory.CreateTempSubdirectory("camguard-archiver-").FullName;
+        var root = Directory.CreateTempSubdirectory("camguard-archiver-").FullName;
         try
         {
-            string sourcePath = Path.Combine(root, "first-run.png");
+            var sourcePath = Path.Combine(root, "first-run.png");
             await File.WriteAllBytesAsync(sourcePath, [1, 2, 3]);
-            FileSystemImageArchiver archiver = CreateArchiver(root);
+            var archiver = CreateArchiver(root);
 
             Assert.False(Directory.Exists(Path.Combine(root, "processed")));
 

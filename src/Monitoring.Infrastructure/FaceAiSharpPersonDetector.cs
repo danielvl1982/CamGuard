@@ -60,14 +60,16 @@ public sealed class FaceAiSharpPersonDetector : IPersonDetector, IDisposable
         var request = new PersonDetectionRequest(image, completion, cancellationToken);
 
         if (!_requests.Writer.TryWrite(request))
+        {
             completion.TrySetException(new InvalidOperationException("Unable to enqueue person-detection request; the detector consumer has stopped."));
+        }
 
         return completion.Task;
     }
 
     private async Task ConsumeAsync()
     {
-        await foreach (PersonDetectionRequest request in _requests.Reader.ReadAllAsync().ConfigureAwait(false))
+        await foreach (var request in _requests.Reader.ReadAllAsync().ConfigureAwait(false))
         {
             if (request.CancellationToken.IsCancellationRequested)
             {
@@ -75,13 +77,13 @@ public sealed class FaceAiSharpPersonDetector : IPersonDetector, IDisposable
                 continue;
             }
 
-            using Activity? activity = _activitySource.StartActivity("Monitoring.DetectPerson");
+            using var activity = _activitySource.StartActivity("Monitoring.DetectPerson");
 
             try
             {
-                using Image<Rgb24> image = Image.Load<Rgb24>(request.Image);
+                using var image = Image.Load<Rgb24>(request.Image);
 
-                IReadOnlyCollection<FaceDetectorResult> faces = _detector.DetectFaces(image);
+                var faces = _detector.DetectFaces(image);
 
                 // PersonDetectionResult models exactly one embedding per image (see
                 // IPersonDetector.cs's scoping note), so faces.detected.count is approximated as
@@ -94,7 +96,7 @@ public sealed class FaceAiSharpPersonDetector : IPersonDetector, IDisposable
                     continue;
                 }
 
-                FaceDetectorResult face = faces.First();
+                var face = faces.First();
                 if (face.Landmarks is null || face.Landmarks.Count == 0)
                 {
                     // A detected face without usable landmarks can't be embedded — treated as "no
@@ -107,7 +109,7 @@ public sealed class FaceAiSharpPersonDetector : IPersonDetector, IDisposable
                 }
 
                 _embeddingsGenerator.AlignFaceUsingLandmarks(image, face.Landmarks);
-                float[] embedding = _embeddingsGenerator.GenerateEmbedding(image);
+                var embedding = _embeddingsGenerator.GenerateEmbedding(image);
 
                 activity?.SetTag("faces.detected.count", 1);
                 activity?.SetTag("person.present", true);

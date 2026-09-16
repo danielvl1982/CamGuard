@@ -1,7 +1,7 @@
-using System.Diagnostics;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.DependencyInjection;
 using Monitoring.Domain;
+using System.Diagnostics;
 
 namespace Monitoring.Application;
 
@@ -25,11 +25,11 @@ public sealed class DetectPersonExecutor(
     public override async ValueTask<MonitoringWorkflowContext> HandleAsync(
         MonitoringWorkflowContext input,
         IWorkflowContext context,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(input);
 
-        using Activity? activity = _activitySource.StartActivity("Monitoring.DetectPerson");
+        using var activity = _activitySource.StartActivity($"{nameof(Monitoring)}.DetectPerson");
 
         var detection = await _personDetector.DetectAsync(input.ImageStream, cancellationToken).ConfigureAwait(false);
 

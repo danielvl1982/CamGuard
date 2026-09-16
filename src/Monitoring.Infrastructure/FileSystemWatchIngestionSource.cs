@@ -64,10 +64,12 @@ public sealed class FileSystemWatchIngestionSource : IIngestionSource, IDisposab
 
         try
         {
-            await foreach (string candidatePath in _channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            await foreach (var candidatePath in _channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 if (await IsStableAsync(candidatePath, cancellationToken).ConfigureAwait(false))
+                {
                     yield return candidatePath;
+                }
             }
         }
         finally
@@ -83,10 +85,14 @@ public sealed class FileSystemWatchIngestionSource : IIngestionSource, IDisposab
     private void OnCreated(object sender, FileSystemEventArgs e)
     {
         if (Directory.Exists(e.FullPath))
+        {
             return; // directories aren't ingestible files
+        }
 
         if (!_channel.Writer.TryWrite(e.FullPath))
+        {
             _logger.LogWarning("Ingestion channel is full; dropped event for {Path}.", e.FullPath);
+        }
     }
 
     private void OnError(object sender, ErrorEventArgs e)
@@ -98,14 +104,14 @@ public sealed class FileSystemWatchIngestionSource : IIngestionSource, IDisposab
 
     private async Task<bool> IsStableAsync(string path, CancellationToken cancellationToken)
     {
-        using Activity? activity = _activitySource.StartActivity("Monitoring.Ingest");
+        using var activity = _activitySource.StartActivity("Monitoring.Ingest");
         activity?.SetTag("file.path", path);
 
-        for (int attempt = 1; attempt <= _options.MaxStabilityRetryAttempts; attempt++)
+        for (var attempt = 1; attempt <= _options.MaxStabilityRetryAttempts; attempt++)
         {
             try
             {
-                using FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None);
+                using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None);
                 activity?.SetTag("debounce.attempts", attempt);
                 return true;
             }

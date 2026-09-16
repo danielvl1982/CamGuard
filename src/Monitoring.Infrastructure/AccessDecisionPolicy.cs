@@ -24,10 +24,14 @@ public sealed class AccessDecisionPolicy : IAccessDecisionPolicy
     public AccessDecisionResult Decide(double distance)
     {
         if (distance <= _options.AllowedMaxDistance)
+        {
             return new AccessDecisionResult(AccessOutcome.Allowed, distance, "Distance at or below AllowedMaxDistance");
+        }
 
         if (distance >= _options.DeniedMinDistance)
+        {
             return new AccessDecisionResult(AccessOutcome.Denied, distance, "Distance at or above DeniedMinDistance");
+        }
 
         return new AccessDecisionResult(AccessOutcome.HumanVerificationRequired, distance, "Distance strictly between configured thresholds");
     }

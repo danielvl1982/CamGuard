@@ -22,7 +22,9 @@ public sealed record PendingVerificationId : IComparable<PendingVerificationId>
     public static PendingVerificationId From(Guid value)
     {
         if (value == Guid.Empty)
+        {
             throw new ArgumentException("PendingVerificationId cannot be Guid.Empty.", nameof(value));
+        }
 
         return new PendingVerificationId(value);
     }

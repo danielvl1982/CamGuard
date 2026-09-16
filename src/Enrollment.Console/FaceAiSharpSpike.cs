@@ -16,17 +16,8 @@ namespace Enrollment.Console;
 /// <c>FaceAiSharpNet10CompatibilityTests</c> without a live ONNX runtime call
 /// per test, per dotnet-testable-code-design.
 /// </summary>
-public sealed class FaceAiSharpSpike
+public sealed class FaceAiSharpSpike(IFaceDetectorWithLandmarks detector, IFaceEmbeddingsGenerator embeddingsGenerator)
 {
-    private readonly IFaceDetectorWithLandmarks _detector;
-    private readonly IFaceEmbeddingsGenerator _embeddingsGenerator;
-
-    public FaceAiSharpSpike(IFaceDetectorWithLandmarks detector, IFaceEmbeddingsGenerator embeddingsGenerator)
-    {
-        _detector = detector;
-        _embeddingsGenerator = embeddingsGenerator;
-    }
-
     /// <summary>
     /// Runs face detection + embedding extraction on the image at <paramref name="imagePath"/>.
     /// Never throws for a zero-face or multi-face image — those are valid,
@@ -34,9 +25,9 @@ public sealed class FaceAiSharpSpike
     /// </summary>
     public FaceAiSharpSpikeResult Run(string imagePath)
     {
-        using Image<Rgb24> image = Image.Load<Rgb24>(imagePath);
+        using var image = Image.Load<Rgb24>(imagePath);
 
-        IReadOnlyCollection<FaceDetectorResult> faces = _detector.DetectFaces(image);
+        var faces = detector.DetectFaces(image);
 
         if (faces.Count == 0)
         {
@@ -48,15 +39,15 @@ public sealed class FaceAiSharpSpike
             return FaceAiSharpSpikeResult.MultipleFacesDetected(faces.Count);
         }
 
-        FaceDetectorResult face = faces.Single();
+        var face = faces.Single();
 
         if (face.Landmarks is null || face.Landmarks.Count == 0)
         {
             return FaceAiSharpSpikeResult.LandmarksUnavailable();
         }
 
-        _embeddingsGenerator.AlignFaceUsingLandmarks(image, face.Landmarks);
-        float[] embedding = _embeddingsGenerator.GenerateEmbedding(image);
+        embeddingsGenerator.AlignFaceUsingLandmarks(image, face.Landmarks);
+        var embedding = embeddingsGenerator.GenerateEmbedding(image);
 
         return FaceAiSharpSpikeResult.Success(embedding);
     }

@@ -29,7 +29,7 @@ public sealed class DecideAccessExecutorTests
             .Returns(new AccessDecisionResult(AccessOutcome.Allowed, 0.2, "Within allowed distance"));
         var executor = mocker.CreateInstance<DecideAccessExecutor>();
 
-        MonitoringWorkflowContext result = await executor.HandleAsync(CreateInput(0.2), Mock.Of<IWorkflowContext>(), CancellationToken.None);
+        var result = await executor.HandleAsync(CreateInput(0.2), Mock.Of<IWorkflowContext>(), CancellationToken.None);
 
         Assert.NotNull(result.Decision);
         Assert.Equal(AccessOutcome.Allowed, result.Decision!.Outcome);
@@ -43,7 +43,7 @@ public sealed class DecideAccessExecutorTests
         mocker.Use(new ActivitySource("Test"));
         var executor = mocker.CreateInstance<DecideAccessExecutor>();
 
-        MonitoringWorkflowContext result = await executor.HandleAsync(CreateInput(null), Mock.Of<IWorkflowContext>(), CancellationToken.None);
+        var result = await executor.HandleAsync(CreateInput(null), Mock.Of<IWorkflowContext>(), CancellationToken.None);
 
         Assert.NotNull(result.Decision);
         Assert.Equal(AccessOutcome.Denied, result.Decision!.Outcome);

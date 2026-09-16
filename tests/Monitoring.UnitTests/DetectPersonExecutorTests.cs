@@ -33,7 +33,7 @@ public sealed class DetectPersonExecutorTests
             .ReturnsAsync(new PersonDetectionResult(true, embedding));
         var executor = mocker.CreateInstance<DetectPersonExecutor>();
 
-        MonitoringWorkflowContext result = await executor.HandleAsync(CreateInput(), Mock.Of<IWorkflowContext>(), CancellationToken.None);
+        var result = await executor.HandleAsync(CreateInput(), Mock.Of<IWorkflowContext>(), CancellationToken.None);
 
         // Decision stays unset — this is exactly what routes the graph's normal edge to
         // VerifyIdentityExecutor rather than the zero-face short-circuit edge to NotifyExecutor.
@@ -51,7 +51,7 @@ public sealed class DetectPersonExecutorTests
             .ReturnsAsync(new PersonDetectionResult(false, null));
         var executor = mocker.CreateInstance<DetectPersonExecutor>();
 
-        MonitoringWorkflowContext result = await executor.HandleAsync(CreateInput(), Mock.Of<IWorkflowContext>(), CancellationToken.None);
+        var result = await executor.HandleAsync(CreateInput(), Mock.Of<IWorkflowContext>(), CancellationToken.None);
 
         Assert.NotNull(result.Decision);
         Assert.Equal(AccessOutcome.HumanVerificationRequired, result.Decision!.Outcome);
@@ -83,7 +83,7 @@ public sealed class DetectPersonExecutorTests
             activitySource);
         var host = new MonitoringWorkflowHost(detect, verify, decide, notify);
 
-        await using Run run = await InProcessExecution.RunAsync(host.Workflow, CreateInput(), cancellationToken: CancellationToken.None);
+        await using var run = await InProcessExecution.RunAsync(host.Workflow, CreateInput(), cancellationToken: CancellationToken.None);
 
         // The mock was never called — not merely "the outcome looks right" — proving the
         // conditional short-circuit edge genuinely bypasses VerifyIdentityExecutor/DecideAccessExecutor.

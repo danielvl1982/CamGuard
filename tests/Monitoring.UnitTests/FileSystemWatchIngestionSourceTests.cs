@@ -28,16 +28,16 @@ public sealed class FileSystemWatchIngestionSourceTests
     [Fact]
     public async Task New_file_triggers_ingestion()
     {
-        string watchRoot = CreateTempWatchRoot();
+        var watchRoot = CreateTempWatchRoot();
         try
         {
-            using FileSystemWatchIngestionSource source = CreateSource(watchRoot);
+            using var source = CreateSource(watchRoot);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            await using IAsyncEnumerator<string> enumerator = source.WatchAsync(cts.Token).GetAsyncEnumerator(cts.Token);
-            Task<bool> moveNextTask = enumerator.MoveNextAsync().AsTask();
+            await using var enumerator = source.WatchAsync(cts.Token).GetAsyncEnumerator(cts.Token);
+            var moveNextTask = enumerator.MoveNextAsync().AsTask();
 
             await Task.Delay(200); // let the FileSystemWatcher attach before the file appears
-            string filePath = Path.Combine(watchRoot, "photo.png");
+            var filePath = Path.Combine(watchRoot, "photo.png");
             await File.WriteAllBytesAsync(filePath, [1, 2, 3]);
 
             Assert.True(await moveNextTask);
@@ -52,16 +52,16 @@ public sealed class FileSystemWatchIngestionSourceTests
     [Fact]
     public async Task Locked_file_is_retried_with_backoff_until_stable()
     {
-        string watchRoot = CreateTempWatchRoot();
+        var watchRoot = CreateTempWatchRoot();
         try
         {
-            using FileSystemWatchIngestionSource source = CreateSource(watchRoot);
+            using var source = CreateSource(watchRoot);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            await using IAsyncEnumerator<string> enumerator = source.WatchAsync(cts.Token).GetAsyncEnumerator(cts.Token);
-            Task<bool> moveNextTask = enumerator.MoveNextAsync().AsTask();
+            await using var enumerator = source.WatchAsync(cts.Token).GetAsyncEnumerator(cts.Token);
+            var moveNextTask = enumerator.MoveNextAsync().AsTask();
 
             await Task.Delay(200);
-            string filePath = Path.Combine(watchRoot, "locked.png");
+            var filePath = Path.Combine(watchRoot, "locked.png");
 
             using (var lockedStream = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
             {
@@ -82,21 +82,21 @@ public sealed class FileSystemWatchIngestionSourceTests
     [Fact]
     public async Task One_validated_file_yields_exactly_one_ingestion_event()
     {
-        string watchRoot = CreateTempWatchRoot();
+        var watchRoot = CreateTempWatchRoot();
         try
         {
-            using FileSystemWatchIngestionSource source = CreateSource(watchRoot);
+            using var source = CreateSource(watchRoot);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             var received = new List<string>();
 
-            Task watchTask = Task.Run(async () =>
+            var watchTask = Task.Run(async () =>
             {
-                await foreach (string path in source.WatchAsync(cts.Token))
+                await foreach (var path in source.WatchAsync(cts.Token))
                     received.Add(path);
             });
 
             await Task.Delay(200);
-            string filePath = Path.Combine(watchRoot, "single.png");
+            var filePath = Path.Combine(watchRoot, "single.png");
             await File.WriteAllBytesAsync(filePath, [1, 2, 3]);
 
             await Task.Delay(1000); // allow the stability check (and any duplicate watcher events) to settle

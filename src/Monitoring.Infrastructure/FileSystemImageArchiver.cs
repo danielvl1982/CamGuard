@@ -33,10 +33,10 @@ public sealed class FileSystemImageArchiver : IImageArchiver
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         cancellationToken.ThrowIfCancellationRequested();
 
-        string targetFolder = Path.Combine(_options.Path, targetFolderName);
+        var targetFolder = Path.Combine(_options.Path, targetFolderName);
         Directory.CreateDirectory(targetFolder);
 
-        string targetPath = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
+        var targetPath = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
         File.Move(sourcePath, targetPath, overwrite: true);
 
         return Task.FromResult(targetPath);

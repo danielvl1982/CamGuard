@@ -42,8 +42,8 @@ public sealed class FaceAiSharpNet10CompatibilityTests
     [Fact]
     public void Running_the_spike_against_a_faceless_image_reports_zero_faces_without_throwing()
     {
-        IFaceDetectorWithLandmarks detector = FaceAiSharpBundleFactory.CreateFaceDetectorWithLandmarks();
-        IFaceEmbeddingsGenerator embeddingsGenerator = FaceAiSharpBundleFactory.CreateFaceEmbeddingsGenerator();
+        var detector = FaceAiSharpBundleFactory.CreateFaceDetectorWithLandmarks();
+        var embeddingsGenerator = FaceAiSharpBundleFactory.CreateFaceEmbeddingsGenerator();
         var spike = new FaceAiSharpSpike(detector, embeddingsGenerator);
 
         FaceAiSharpSpikeResult? result = null;

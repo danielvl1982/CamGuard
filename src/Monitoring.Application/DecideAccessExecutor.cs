@@ -1,7 +1,7 @@
-using System.Diagnostics;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.DependencyInjection;
 using Monitoring.Domain;
+using System.Diagnostics;
 
 namespace Monitoring.Application;
 
@@ -28,18 +28,18 @@ public sealed class DecideAccessExecutor(
     public override ValueTask<MonitoringWorkflowContext> HandleAsync(
         MonitoringWorkflowContext input,
         IWorkflowContext context,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(input);
 
-        using Activity? activity = _activitySource.StartActivity("Monitoring.Decide");
+        using var activity = _activitySource.StartActivity($"{nameof(Monitoring)}.Decide");
 
         var decision = input.Distance is { } distance
             ? _accessDecisionPolicy.Decide(distance)
             : new AccessDecisionResult(AccessOutcome.Denied, Distance: null, Reason: "No enrolled member match found");
 
         activity?.SetTag("outcome", decision.Outcome.ToString());
-        activity?.SetTag("distance", decision.Distance);
+        activity?.SetTag(nameof(distance), decision.Distance);
 
         return ValueTask.FromResult(input with { Decision = decision });
     }

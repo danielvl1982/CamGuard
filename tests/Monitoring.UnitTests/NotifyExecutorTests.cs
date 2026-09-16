@@ -38,7 +38,7 @@ public sealed class NotifyExecutorTests
     [MemberData(nameof(AllOutcomes))]
     public async Task Fires_a_notification_for_every_outcome_including_Allowed(AccessOutcome outcome)
     {
-        AutoMocker mocker = CreateMocker();
+        var mocker = CreateMocker();
         var decision = new AccessDecisionResult(outcome, Distance: 0.4, Reason: "test");
         var executor = mocker.CreateInstance<NotifyExecutor>();
 
@@ -51,7 +51,7 @@ public sealed class NotifyExecutorTests
     [Fact]
     public async Task Alert_carries_an_image_reference_never_raw_image_bytes()
     {
-        AutoMocker mocker = CreateMocker();
+        var mocker = CreateMocker();
         var decision = new AccessDecisionResult(AccessOutcome.Allowed, Distance: 0.1, Reason: "close match");
         var executor = mocker.CreateInstance<NotifyExecutor>();
 
@@ -68,14 +68,14 @@ public sealed class NotifyExecutorTests
     [Fact]
     public async Task Notification_failure_is_caught_logged_and_the_run_still_completes()
     {
-        AutoMocker mocker = CreateMocker();
+        var mocker = CreateMocker();
         mocker.GetMock<INotificationService>()
             .Setup(x => x.NotifyAsync(It.IsAny<AccessAlert>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("simulated notification failure"));
         var decision = new AccessDecisionResult(AccessOutcome.Denied, Distance: 0.9, Reason: "far match");
         var executor = mocker.CreateInstance<NotifyExecutor>();
 
-        bool completed = await executor.HandleAsync(CreateInput(decision), Mock.Of<IWorkflowContext>(), CancellationToken.None);
+        var completed = await executor.HandleAsync(CreateInput(decision), Mock.Of<IWorkflowContext>(), CancellationToken.None);
 
         Assert.True(completed);
         mocker.GetMock<ILogger<NotifyExecutor>>().Verify(
@@ -91,7 +91,7 @@ public sealed class NotifyExecutorTests
     [Fact]
     public async Task HumanVerificationRequired_persists_a_pending_verification_record()
     {
-        AutoMocker mocker = CreateMocker();
+        var mocker = CreateMocker();
         var decision = new AccessDecisionResult(AccessOutcome.HumanVerificationRequired, Distance: 0.45, Reason: "mid-threshold");
         var executor = mocker.CreateInstance<NotifyExecutor>();
 
@@ -106,7 +106,7 @@ public sealed class NotifyExecutorTests
     [Fact]
     public async Task Allowed_outcome_does_not_persist_a_pending_verification_record()
     {
-        AutoMocker mocker = CreateMocker();
+        var mocker = CreateMocker();
         var decision = new AccessDecisionResult(AccessOutcome.Allowed, Distance: 0.1, Reason: "close match");
         var executor = mocker.CreateInstance<NotifyExecutor>();
 
