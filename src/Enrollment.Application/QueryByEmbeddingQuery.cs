@@ -8,7 +8,7 @@ public sealed record QueryByEmbeddingQuery(float[] EmbeddingVector);
 
 /// <summary>
 /// Validates the query embedding, then deterministically returns the closest
-/// enrolled member (or none) — per <c>member-directory-query</c> spec.
+/// enrolled member (or none) ï¿½ per <c>member-directory-query</c> spec.
 /// </summary>
 public sealed class QueryByEmbeddingQueryHandler(IMemberVectorRepository memberVectorRepository)
 {
