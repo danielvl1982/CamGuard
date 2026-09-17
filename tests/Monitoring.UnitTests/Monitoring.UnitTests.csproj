@@ -7,7 +7,9 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
@@ -30,6 +32,9 @@
     <!-- Same physical asset as src/Enrollment.Console/testdata; single source of truth, same
          pattern as Enrollment.UnitTests.csproj (task 6.8's read-only fixture reuse). -->
     <None Include="..\..\src\Enrollment.Console\testdata\blank-image.png" Link="testdata\blank-image.png" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Same physical asset as src/Monitoring.Host/appsettings.json; single source of truth so
+         AppSettingsSecretsTests reads the real committed configuration, not a copy that can drift. -->
+    <None Include="..\..\src\Monitoring.Host\appsettings.json" Link="testdata\appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
