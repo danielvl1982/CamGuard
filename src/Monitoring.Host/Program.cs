@@ -8,6 +8,6 @@ using Monitoring.Infrastructure;
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddEnrollment(builder.Configuration);
-builder.Services.AddMonitoring(builder.Configuration);
+builder.Services.AddMonitoring(builder.Configuration, builder.Environment);
 
 await builder.Build().RunAsync();

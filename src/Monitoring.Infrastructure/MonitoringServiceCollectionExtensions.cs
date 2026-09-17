@@ -2,6 +2,8 @@ using Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Monitoring.Application;
 
 namespace Monitoring.Infrastructure;
@@ -24,9 +26,10 @@ public static class MonitoringServiceCollectionExtensions
     /// </summary>
     public const string ActivitySourceName = MonitoringObservability.ActivitySourceName;
 
-    public static IServiceCollection AddMonitoring(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddMonitoring(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(environment);
 
         // Mirrors AddEnrollment(...) exactly: closes over `configuration` directly, never
         // `.Configure<IConfiguration>((o, c) => ...)` resolved from the container — that form only
@@ -41,6 +44,12 @@ public static class MonitoringServiceCollectionExtensions
 
         services.AddOptions<WatchFolderOptions>()
             .Configure(o => configuration.GetSection(WatchFolderOptions.SectionName).Bind(o));
+
+        services.AddOptions<NtfyOptions>()
+            .Configure(o => configuration.GetSection(NtfyOptions.SectionName).Bind(o));
+
+        services.AddOptions<EmailNotificationOptions>()
+            .Configure(o => configuration.GetSection(EmailNotificationOptions.SectionName).Bind(o));
 
         services.AddNamedObservabilitySource(ActivitySourceName);
 
@@ -58,8 +67,23 @@ public static class MonitoringServiceCollectionExtensions
         // (EnrollmentServiceCollectionExtensions) — none of these three hold state that requires a
         // wider lifetime.
         services.TryAddScoped<IAccessDecisionPolicy, AccessDecisionPolicy>();
-        services.TryAddScoped<INotificationService, LoggingNotificationService>();
         services.TryAddScoped<IImageArchiver, FileSystemImageArchiver>();
+
+        // Development gets the logging-only placeholder so local testing never spams a real
+        // phone/inbox; every other environment gets the real ntfy + email channels fanned out
+        // through CompositeNotificationService (still isolated per channel — see its own comment).
+        services.AddHttpClient<NtfyNotificationService>();
+        services.TryAddScoped<EmailNotificationService>();
+        if (environment.IsDevelopment())
+        {
+            services.TryAddScoped<INotificationService, LoggingNotificationService>();
+        }
+        else
+        {
+            services.TryAddScoped<INotificationService>(sp => new CompositeNotificationService(
+                [sp.GetRequiredService<NtfyNotificationService>(), sp.GetRequiredService<EmailNotificationService>()],
+                sp.GetRequiredService<ILogger<CompositeNotificationService>>()));
+        }
 
         // Owns the FileSystemWatcher + debounce channel for the process lifetime.
         services.TryAddSingleton<IIngestionSource, FileSystemWatchIngestionSource>();
