@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Monitoring.Domain;
 using Monitoring.Infrastructure;
@@ -69,7 +70,7 @@ public sealed class AccessDecisionPolicyTests
             ])
             .Build();
 
-        services.AddMonitoring(configuration);
+        services.AddMonitoring(configuration, new FakeHostEnvironment(Environments.Production));
         using var provider = services.BuildServiceProvider();
 
         Assert.Throws<OptionsValidationException>(() =>
@@ -87,7 +88,7 @@ public sealed class AccessDecisionPolicyTests
             ])
             .Build();
 
-        services.AddMonitoring(configuration);
+        services.AddMonitoring(configuration, new FakeHostEnvironment(Environments.Production));
         using var provider = services.BuildServiceProvider();
 
         var options = provider.GetRequiredService<IOptions<AccessDecisionOptions>>().Value;
