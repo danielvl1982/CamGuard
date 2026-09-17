@@ -36,8 +36,13 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.12" />
+
+    <!-- Notification channels — free/no-subscription: ntfy.sh (HttpClient only, no extra package)
+         and SMTP email via MailKit -->
+    <PackageVersion Include="MailKit" Version="4.16.0" />
 
     <!-- Testing -->
     <PackageVersion Include="Moq.AutoMock" Version="4.0.3" />
