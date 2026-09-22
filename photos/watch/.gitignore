@@ -1,0 +1,7 @@
+# CamGuard watch folder — runtime captures & processed images
+# Ignore everything in this folder except the .gitignore itself
+*
+!.gitignore
+!processed/
+processed/*
+!processed/.gitignore

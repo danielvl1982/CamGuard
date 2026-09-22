@@ -4,6 +4,7 @@ using CSharpFunctionalExtensions;
 using Enrollment.Domain;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.VectorData;
 using System.Diagnostics;
 
 namespace Enrollment.Infrastructure;
@@ -70,6 +71,35 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
         }
 
         activity?.SetTag("latency", Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds);
+        return null;
+    }
+
+    public async Task<Member?> FindByFullNameAsync(string fullName, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            return null;
+        }
+
+        var normalized = MemberVectorRecordMapper.Normalize(fullName);
+
+        using var activity = _activitySource.StartActivity("Enrollment.VectorStore.FindByFullName");
+        activity?.SetTag("lookup.fullName", normalized);
+
+        await _collection.EnsureCollectionExistsAsync(cancellationToken);
+
+        var options = new FilteredRecordRetrievalOptions<MemberVectorRecord> { IncludeVectors = true };
+
+        await foreach (var record in _collection.GetAsync(r => true, int.MaxValue, options, cancellationToken).ConfigureAwait(false))
+        {
+            if (string.Equals(MemberVectorRecordMapper.Normalize(record.FullName), normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                activity?.SetTag("lookup.found", true);
+                return MemberVectorRecordMapper.ToMember(record);
+            }
+        }
+
+        activity?.SetTag("lookup.found", false);
         return null;
     }
 }

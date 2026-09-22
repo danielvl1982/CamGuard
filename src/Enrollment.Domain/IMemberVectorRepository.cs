@@ -11,4 +11,7 @@ public interface IMemberVectorRepository
 
     /// <summary>Returns the closest enrolled member and its similarity score, or <c>null</c> when none are enrolled.</summary>
     Task<(MemberId Id, double Score)?> FindNearestAsync(FaceEmbedding query, CancellationToken cancellationToken);
+
+    /// <summary>Finds a member by normalized <c>FullName</c> (trim + <see cref="StringComparison.OrdinalIgnoreCase"/>), or <c>null</c> when none matches.</summary>
+    Task<Member?> FindByFullNameAsync(string fullName, CancellationToken cancellationToken);
 }

@@ -1,0 +1,6 @@
+# Enrollment watch drop folder — see enrollment-watch-ingestion spec
+# Ignore everything except the .gitignore itself and processed/quarantine subfolders
+*
+!.gitignore
+!processed/
+!quarantine/
