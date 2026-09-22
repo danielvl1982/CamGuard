@@ -93,5 +93,6 @@ public enum RegisterMemberError
     NoFaceDetected,
     MultipleFacesDetected,
     ExtractionFailed,
-    InvalidMember
+    InvalidMember,
+    InvalidName
 }

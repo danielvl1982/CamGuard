@@ -24,6 +24,8 @@ public static class EnrollmentServiceCollectionExtensions
     /// </summary>
     public const string ActivitySourceName = "CamGuard.Enrollment";
 
+    public const string WatchActivitySourceName = "CamGuard.Enrollment.Watch";
+
     public static IServiceCollection AddEnrollment(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
@@ -39,6 +41,7 @@ public static class EnrollmentServiceCollectionExtensions
             .Configure(o => configuration.GetSection(VectorStoreOptions.SectionName).Bind(o));
 
         services.AddNamedObservabilitySource(ActivitySourceName);
+        services.AddNamedObservabilitySource(WatchActivitySourceName);
 
         // FaceAiSharp's detector/embeddings-generator wrap loaded ONNX models — expensive to
         // construct, so they are singletons, built only through the documented factory (never a
@@ -52,6 +55,7 @@ public static class EnrollmentServiceCollectionExtensions
         services.TryAddScoped<IFaceEmbeddingExtractor, FaceAiSharpEmbeddingExtractor>();
         services.TryAddScoped<IMemberVectorRepository, SqliteVecMemberRepository>();
         services.TryAddScoped<RegisterMemberCommandHandler>();
+        services.TryAddScoped<EnrollmentService>();
         services.TryAddScoped<QueryByEmbeddingQueryHandler>();
         services.TryAddScoped<IMemberDirectoryReader, MemberDirectoryReader>();
 

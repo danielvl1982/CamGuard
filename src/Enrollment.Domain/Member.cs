@@ -19,6 +19,15 @@ public sealed class Member : EntityBase<MemberId>
 
     public FaceEmbedding Embedding { get; }
 
+    /// <summary>Reconstitutes a member from persistence without raising domain events.</summary>
+    public static Member Rehydrate(MemberId id, string fullName, FaceEmbedding embedding)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(embedding);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fullName);
+        return new Member(id, fullName, embedding);
+    }
+
     /// <summary>
     /// Enrolls a member from identity data and one already-validated face embedding.
     /// Raises <see cref="MemberEnrolled"/> on success.

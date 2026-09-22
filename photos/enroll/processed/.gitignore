@@ -1,0 +1,3 @@
+# Keep the processed folder in git, ignore its contents
+*
+!.gitignore

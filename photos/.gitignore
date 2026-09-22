@@ -1,0 +1,6 @@
+# Photos — source images for enrollment / manual tests
+# Keep the folder but ignore large binaries by default
+# Remove this line if you want to version sample photos
+# *.jpg
+# *.jpeg
+# *.png
