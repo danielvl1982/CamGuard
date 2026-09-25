@@ -6,6 +6,7 @@
     <Project Path="src/Enrollment.Domain/Enrollment.Domain.csproj" />
     <Project Path="src/Enrollment.Infrastructure/Enrollment.Infrastructure.csproj" />
     <Project Path="src/Enrollment.PublicApi/Enrollment.PublicApi.csproj" />
+    <Project Path="src/Enrollment.Web/Enrollment.Web.csproj" />
     <Project Path="src/Monitoring.Application/Monitoring.Application.csproj" />
     <Project Path="src/Monitoring.Domain/Monitoring.Domain.csproj" />
     <Project Path="src/Monitoring.Host/Monitoring.Host.csproj" />
