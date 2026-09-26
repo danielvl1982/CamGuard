@@ -234,7 +234,16 @@
         {
             foreach (var photo in photos)
             {
-                streams.Add(photo.File.OpenReadStream(MaxPhotoBytes));
+                // Buffer each upload into memory before the application layer sees it.
+                // Two reasons: Blazor's BrowserFileStream rejects synchronous reads
+                // (the extractor's Image.Load reads synchronously), and a circuit-bound
+                // stream must not stay open across the slow face-extraction call.
+                // Mirrors how the preview path already materializes the file.
+                await using var source = photo.File.OpenReadStream(MaxPhotoBytes);
+                var buffer = new MemoryStream();
+                await source.CopyToAsync(buffer);
+                buffer.Position = 0;
+                streams.Add(buffer);
             }
 
             // Mirror the console flow: one fresh DI scope per submission, handler

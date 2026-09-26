@@ -258,3 +258,13 @@ with disclosure — a client-runtime limitation, not a scope change.
 - 2026-09-26 — T5 landed (Members page, 2 paths + rebuilt CSS). Third RDD consent (27 files /
   2976 lines, medium): **"Skip this time" again** → `declined_this_candidate`. Static SSR +
   StreamRendering chosen over an interactive island because the page has no event handlers.
+- 2026-09-26 — Smoke bug (T6 browser pass): `Register member` failed with
+  `Synchronous reads are not supported`. Root cause: `Register.razor` handed Blazor's
+  `BrowserFileStream` directly to the handler, whose `Image.Load` reads synchronously
+  (the console path never hit this — disk `FileStream` allows sync reads). Fixed at the
+  web boundary: buffer each upload into a `MemoryStream` (`CopyToAsync` + position reset)
+  before building the command; Application/Infrastructure untouched. Build 0 errors /
+  0 warnings, server restarted on :5203. Same session repo hygiene: `.githooks/pre-push`
+  (commit `002b474`) blocks direct pushes to `main` — GitHub Free returns 403 for
+  rulesets/branch protection on private repos — plus `.gitattributes` LF enforcement
+  (`7bfafe4`) so `autocrlf=true` clones cannot break the hook's shebang.
