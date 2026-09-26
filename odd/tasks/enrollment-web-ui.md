@@ -134,7 +134,7 @@ server-side regardless of stack (this forced a server host in every option).
   it blocked the writer's foreground shell for 2h16m until the processes were killed; never
   use a watcher as a verification command.
 
-- [ ] **T4 — Register page**
+- [x] **T4 — Register page**
   `Register.razor`: FullName input + multi `InputFile` with per-photo previews and remove,
   client-side validation (non-empty name, ≥1 photo), submit → scope → streams →
   `RegisterMemberCommandHandler.HandleAsync`, map each `RegisterMemberError` to an inline
@@ -143,7 +143,26 @@ server-side regardless of stack (this forced a server host in every option).
   `src/Enrollment.Console/testdata/blank-image.png` (expected: gate error path) and a real
   face photo (expected: success + persisted row).
   *Route:* delegated writer (writer trigger: 2+ non-trivial files).
-  *Evidence:* pending.
+  *Evidence:* 2026-09-26. 2 paths: `Components/Pages/Register.razor` (new, first interactive
+  island — `@rendermode InteractiveServer`) + `Components/Layout/MainLayout.razor` (nav link).
+  **Scope decision:** the handler is `Scoped` and a Blazor Server circuit is itself a
+  long-lived scope, so injecting the handler directly would pin its scoped dependencies for
+  the circuit's whole life. Instead the page injects `IServiceScopeFactory` and creates one
+  fresh scope per submission (`using var scope = …CreateScope()` →
+  `GetRequiredService<RegisterMemberCommandHandler>()`) — mirrors the console's
+  `RunRegisterAsync` and satisfies acceptance criterion 2 (same handler, same persistence).
+  All five `RegisterMemberError` values map to distinct inline messages (`role="alert"`);
+  gate failures preserve form state; success clears it and shows name/`MemberId`/photo count.
+  Double-submit guarded via `isSubmitting` + `disabled` (face extraction is slow);
+  >50 MB files rejected at selection; previews degrade to a "No preview" placeholder.
+  Verified: `dotnet build CamGuard.slnx` → 0 errors / 8 pre-existing warnings;
+  `dotnet test Enrollment.UnitTests` → 68/68 unchanged.
+  **CSS normalized:** T4 introduced 35 utility classes absent from T3's build, so the
+  orchestrator re-ran one-shot `npm run build` → `wwwroot/app.css` 10,371 → **13,244 bytes**,
+  `bg-accent` / `text-accent-contrast` / `space-y-2`… present, `--color-accent` emitted
+  (no longer pruned). Included in the T4 commit.
+  *Pending for T6:* interactive browser smoke (blank-image → inline gate error; real photo →
+  success + persisted row) — compile-verified only so far.
 
 - [ ] **T5 — Members list page**
   `Members.razor`: read-only table/list from `ListAllAsync` (FullName + MemberId), empty
@@ -210,3 +229,7 @@ with disclosure — a client-runtime limitation, not a scope change.
   Smoke photo `photos/DSC_9665.jpg` (13 MB) supplied by user; `photos/.gitignore` has its
   patterns **commented out**, so the photo was untracked-but-visible — excluded locally via
   `.git/info/exclude`. Fix `photos/.gitignore` at T6.
+- 2026-09-26 — T4 landed (Register page, 2 paths + rebuilt CSS). Second RDD consent (26 files
+  / 2488 lines, medium, `slice_budget_reached`): **"Skip this time" again** →
+  `declined_this_candidate`. Boundary still `f5ba6de`. Scope-per-submit chosen over direct
+  scoped injection to match the console and avoid pinning scoped deps for a circuit's life.
