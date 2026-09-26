@@ -1,6 +1,33 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
-@Body
+@* Zone layout: header (surface) / nav (elevated) / main (base) / footer (surface).
+   Adjacent zones always differ by one step of the surface ladder, so separation
+   comes from contrast alone, not from color hue. *@
+<div class="flex min-h-screen flex-col bg-base text-text">
+    <header class="border-b border-border bg-surface">
+        <div class="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
+            <a href="/" class="text-lg font-semibold tracking-wide text-text">CamGuard Enrollment</a>
+        </div>
+    </header>
+
+    <nav class="border-b border-border bg-elevated" aria-label="Primary">
+        <div class="mx-auto flex w-full max-w-6xl gap-1 px-4 py-2">
+            <a href="/" class="rounded px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text">Home</a>
+        </div>
+    </nav>
+
+    <main class="flex-1 bg-base">
+        <div class="mx-auto w-full max-w-6xl px-4 py-8">
+            @Body
+        </div>
+    </main>
+
+    <footer class="border-t border-border bg-surface">
+        <div class="mx-auto w-full max-w-6xl px-4 py-4 text-sm text-text-muted">
+            CamGuard Enrollment portal.
+        </div>
+    </footer>
+</div>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.

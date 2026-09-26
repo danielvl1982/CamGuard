@@ -16,3 +16,7 @@ Thumbs.db
 
 # CodeGraph index (local, per-worktree, regenerable)
 .codegraph/
+
+# Node dev toolchain (Enrollment.Web Tailwind CSS build)
+node_modules/
+npm-debug.log*

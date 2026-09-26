@@ -106,7 +106,7 @@ server-side regardless of stack (this forced a server host in every option).
   it locks `Enrollment.Web\bin` output (MSB3021/MSB3027). A/B stash check proved the lock was
   environmental, not code.
 
-- [ ] **T3 — Tailwind 4 + dark token system + layout zones**
+- [x] **T3 — Tailwind 4 + dark token system + layout zones**
   Dev-only `package.json` in `Enrollment.Web` (`@tailwindcss/cli` build/watch →
   `wwwroot/app.css`), `@theme` tokens (surface ladder, borders, text, accent, focus ring),
   `@source` for `*.razor`, base layout with zones separated by surface contrast, global
@@ -114,7 +114,25 @@ server-side regardless of stack (this forced a server host in every option).
   *Acceptance:* CSS builds; `dotnet build` green; layout renders zone contrast + visible
   focus ring on tab navigation.
   *Route:* delegated writer (writer trigger: 3+ files: package.json, CSS, layout razor).
-  *Evidence:* pending.
+  *Evidence:* 2026-09-26. 6 paths: `.gitignore`, `src/Enrollment.Web/package.json` +
+  `package-lock.json` (dev only, `@tailwindcss/cli ^4.1.0` → v4.3.3),
+  `src/Enrollment.Web/Styles/app.css` (input), `src/Enrollment.Web/wwwroot/app.css`
+  (committed output, 10,371 bytes), `Components/Layout/MainLayout.razor`.
+  Ladder `--color-base #0b0f16` → `--color-surface #151d2a` → `--color-elevated #212c3d`;
+  zones header/nav/main/footer = surface/elevated/base/surface (adjacent zones differ by one
+  ladder step → contrast-only separation). Global `:focus-visible { outline: 2px solid
+  var(--color-focus-ring); outline-offset: 2px }` in `@layer base`; built CSS has
+  **0 `outline: none`**. `@import "tailwindcss" source(none)` + `@source "../Components/**/*.razor"`.
+  Verified: `npm run build` → `tailwindcss v4.3.3`, `Done in 30ms`, exit 0; output mtime
+  12:54:29 ≥ input 12:54:21 (not stale); ladder classes + `:focus-visible` present in output;
+  `node_modules` ignored; `dotnet build CamGuard.slnx` → 0 errors / 8 pre-existing warnings.
+  *Gotchas:* (a) **Tailwind 4 prunes unused `@theme` vars** — `--color-accent*` /
+  `--color-border-strong` are absent from `:root` until a utility uses them, so downstream
+  pages must use utility classes, never `var(--color-*)` from `.razor.css` scoped files.
+  (b) `#blazor-error-ui` lives in `MainLayout.razor.css` (scoped bundle), not in the
+  overwritten `wwwroot/app.css`. (c) `npm run watch` (`--watch=always`) NEVER returns —
+  it blocked the writer's foreground shell for 2h16m until the processes were killed; never
+  use a watcher as a verification command.
 
 - [ ] **T4 — Register page**
   `Register.razor`: FullName input + multi `InputFile` with per-photo previews and remove,
@@ -181,3 +199,14 @@ with disclosure — a client-runtime limitation, not a scope change.
 - 2026-09-26 — T2 landed (ListAllAsync): 3 files, 5 new tests, solution suite 131 green.
   Writer returned `partial` only for the bin-dir file lock; stashed A/B proved 0 CS errors.
   RDD is **on (global)** — per-commit assessment runs after each work-unit commit.
+- 2026-09-26 — RDD consent for the T1+T2 slice (22 files / 848 lines, `slice_budget_reached`,
+  medium): **user chose "Skip this time"** → `declined_this_candidate`, no review record,
+  candidate-scoped (not the kill switch). Boundary stays at branch point `f5ba6de`.
+- 2026-09-26 — T3 landed (Tailwind toolchain + dark ladder + 4-zone layout), 6 paths.
+  **Incident:** the writer ran `npm run watch` (`--watch=always`) as a foreground
+  verification command → it never returns, so the sub-agent hung 2h16m (files frozen at
+  10:35:47, PIDs 21100/11060 idle since 10:36:23). Fixed by killing both watchers, which
+  released the shell. Rule: one-shot `npm run build` only for verification.
+  Smoke photo `photos/DSC_9665.jpg` (13 MB) supplied by user; `photos/.gitignore` has its
+  patterns **commented out**, so the photo was untracked-but-visible — excluded locally via
+  `.git/info/exclude`. Fix `photos/.gitignore` at T6.

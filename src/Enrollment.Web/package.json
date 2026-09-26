@@ -1,0 +1,13 @@
+{
+  "name": "enrollment-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dev-only toolchain for the Enrollment.Web Tailwind CSS build. Output is committed to wwwroot/app.css; node_modules is never committed.",
+  "scripts": {
+    "build": "tailwindcss -i ./Styles/app.css -o ./wwwroot/app.css",
+    "watch": "tailwindcss -i ./Styles/app.css -o ./wwwroot/app.css --watch=always"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.0"
+  }
+}
