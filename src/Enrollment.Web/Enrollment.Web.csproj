@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- TargetFramework, ImplicitUsings and Nullable come from Directory.Build.props -->
+  <PropertyGroup>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Enrollment.Application\Enrollment.Application.csproj" />
+    <ProjectReference Include="..\Enrollment.Infrastructure\Enrollment.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FaceAiSharp" />
+    <PackageReference Include="FaceAiSharp.Bundle" />
+    <!-- Native ONNX Runtime binaries; FaceAiSharp only brings the managed bindings -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+  </ItemGroup>
+
+</Project>

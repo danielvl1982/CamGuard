@@ -1,0 +1,90 @@
+@page "/members"
+@attribute [StreamRendering]
+
+@using Enrollment.Domain
+@inject IMemberVectorRepository MemberRepository
+@inject ILogger<Members> Logger
+
+@* Static SSR: the directory is read-only (no event handlers, no state changes after
+   load), so no interactive circuit is needed. [StreamRendering] is what makes the
+   loading state observable — without it, static SSR blocks the whole response until
+   OnInitializedAsync completes and the browser never sees the placeholder. *@
+<PageTitle>Members</PageTitle>
+
+<div class="mx-auto w-full max-w-3xl">
+    <h1 class="mb-6 text-xl font-semibold text-text">Members</h1>
+
+    @if (isLoading)
+    {
+        <p class="text-sm text-text-muted" role="status">Loading members…</p>
+    }
+    else if (loadError is not null)
+    {
+        <p class="validation-message text-sm" role="alert">@loadError</p>
+    }
+    else if (members is { Count: 0 })
+    {
+        <div class="rounded-lg border border-border bg-surface p-6 text-center" role="status">
+            <p class="text-text-muted">No members are enrolled yet.</p>
+            <div class="mt-3">
+                <a href="/register" class="rounded bg-accent px-4 py-2 font-semibold text-accent-contrast transition-colors hover:bg-accent-hover">Register a member</a>
+            </div>
+        </div>
+    }
+    else if (members is not null)
+    {
+        <div class="rounded-lg border border-border bg-surface">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-elevated text-left">
+                        <th scope="col" class="px-4 py-3 font-semibold text-text">Full name</th>
+                        <th scope="col" class="px-4 py-3 font-semibold text-text">Member ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var member in members)
+                    {
+                        <tr @key="member.Id" class="border-t border-border">
+                            <td class="px-4 py-3 text-text">@member.FullName</td>
+                            <td class="px-4 py-3 text-text-muted"><code>@member.Id</code></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    // HttpContext cascades only during static SSR (null under interactive rendering);
+    // RequestAborted cancels the read when the client disconnects mid-load.
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private IReadOnlyList<Member>? members;
+    private string? loadError;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var cancellationToken = HttpContext?.RequestAborted ?? CancellationToken.None;
+        try
+        {
+            members = await MemberRepository.ListAllAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Client disconnected; the response is already gone.
+        }
+        catch (Exception ex)
+        {
+            // Render an inline message instead of letting the failure take down the page.
+            Logger.LogError(ex, "Failed to load the member directory.");
+            loadError = "The member list could not be loaded. Refresh the page to try again.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

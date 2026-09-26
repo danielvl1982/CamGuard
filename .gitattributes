@@ -1,0 +1,3 @@
+# Git hooks must keep LF endings in the working tree: a CRLF shebang
+# (`#!/bin/sh\r`) breaks hook execution with "bad interpreter".
+.githooks/** text eol=lf

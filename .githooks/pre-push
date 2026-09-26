@@ -1,0 +1,18 @@
+#!/bin/sh
+# Pre-push: block direct pushes to main.
+# Every change must land on a feature branch and go through a PR.
+#
+# Enable locally with:
+#   git config core.hooksPath .githooks
+
+while read -r local_ref local_sha remote_ref remote_sha
+do
+	if [ "$remote_ref" = "refs/heads/main" ]
+	then
+		echo "error: direct push to 'main' is blocked by .githooks/pre-push." >&2
+		echo "Push a feature branch and open a PR instead." >&2
+		exit 1
+	fi
+done
+
+exit 0

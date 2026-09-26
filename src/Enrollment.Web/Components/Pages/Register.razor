@@ -1,0 +1,333 @@
+@page "/register"
+@rendermode InteractiveServer
+
+@using Enrollment.Application
+@inject IServiceScopeFactory ScopeFactory
+@inject ILogger<Register> Logger
+
+<PageTitle>Register member</PageTitle>
+
+<div class="mx-auto w-full max-w-2xl">
+    <h1 class="mb-6 text-xl font-semibold text-text">Register member</h1>
+
+    @if (registered is { } confirmation)
+    {
+        <div class="mb-6 rounded-lg border border-border bg-surface p-4" role="status">
+            <p class="font-semibold text-text">Member registered</p>
+            <p class="mt-1 text-sm text-text-muted">
+                <span class="text-text">@confirmation.Name</span>
+                &mdash; ID <code>@confirmation.MemberId</code>
+                &mdash; @PhotoCountLabel(confirmation.PhotoCount) submitted.
+            </p>
+            <button type="button"
+                    class="mt-3 rounded border border-border px-3 py-1.5 text-sm text-text transition-colors hover:bg-elevated"
+                    @onclick="DismissSuccess">
+                Register another member
+            </button>
+        </div>
+    }
+
+    <form class="rounded-lg border border-border bg-surface p-6"
+          @onsubmit="SubmitAsync"
+          @onsubmit:preventDefault="true">
+        <div class="space-y-6">
+            <div>
+                <label for="fullName" class="mb-1 block text-sm font-medium text-text">Full name</label>
+                <input id="fullName"
+                       type="text"
+                       class="block w-full rounded border border-border bg-elevated px-3 py-2 text-text"
+                       placeholder="e.g. Ada Lovelace"
+                       autocomplete="name"
+                       @bind="fullName"
+                       @bind:event="oninput"
+                       @bind:after="() => nameError = null"
+                       disabled="@(isSubmitting ? "disabled" : null)" />
+                @if (nameError is not null)
+                {
+                    <p class="validation-message mt-1 text-sm" role="alert">@nameError</p>
+                }
+            </div>
+
+            <div>
+                <label for="photos" class="mb-1 block text-sm font-medium text-text">Photos</label>
+                <p class="mb-2 text-sm text-text-muted">
+                    Add one or more photos. Every photo must contain exactly one clearly visible face.
+                </p>
+                <InputFile id="photos"
+                           multiple
+                           accept="image/*"
+                           OnChange="OnFilesChangedAsync"
+                           disabled="@(isSubmitting ? "disabled" : null)" />
+                @if (photoError is not null)
+                {
+                    <p class="validation-message mt-1 text-sm" role="alert">@photoError</p>
+                }
+                @if (selectionError is not null)
+                {
+                    <p class="validation-message mt-1 text-sm" role="alert">@selectionError</p>
+                }
+
+                @if (photos.Count > 0)
+                {
+                    <ul class="mt-3 grid gap-3 sm:grid-cols-2" role="list">
+                        @foreach (var photo in photos)
+                        {
+                            <li @key="photo.Id" class="flex items-center gap-3 rounded border border-border bg-elevated p-3">
+                                <div class="h-16 w-16 shrink-0 overflow-hidden rounded border border-border bg-surface">
+                                    @if (photo.PreviewDataUrl is not null)
+                                    {
+                                        <img src="@photo.PreviewDataUrl" alt="Preview of @photo.File.Name" class="h-full w-full object-cover" />
+                                    }
+                                    else
+                                    {
+                                        <span class="flex h-full w-full items-center justify-center text-sm text-text-muted">No preview</span>
+                                    }
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm text-text">@photo.File.Name</p>
+                                    <p class="text-sm text-text-muted">@FormatSize(photo.File.Size)</p>
+                                </div>
+                                <button type="button"
+                                        class="shrink-0 rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                        disabled="@(isSubmitting ? "disabled" : null)"
+                                        @onclick="() => RemovePhoto(photo)">
+                                    Remove
+                                </button>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            <div class="flex flex-wrap items-center gap-4">
+                <button type="submit"
+                        class="rounded bg-accent px-4 py-2 font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50"
+                        disabled="@(isSubmitting ? "disabled" : null)">
+                    @(isSubmitting ? "Registering…" : "Register member")
+                </button>
+                @if (isSubmitting)
+                {
+                    <span class="text-sm text-text-muted" role="status">Checking photos — face extraction can take a moment.</span>
+                }
+            </div>
+
+            @if (submissionError is not null)
+            {
+                <p class="validation-message text-sm" role="alert">@submissionError</p>
+            }
+        </div>
+    </form>
+</div>
+
+@code {
+    /// <summary>Upper bound per photo; matches the cap enforced by <see cref="IBrowserFile.OpenReadStream(long, CancellationToken)"/>.</summary>
+    private const long MaxPhotoBytes = 50 * 1024 * 1024;
+
+    private const int PreviewMaxDimension = 160;
+
+    private string fullName = string.Empty;
+    private string? nameError;
+    private string? photoError;
+    private string? selectionError;
+    private string? submissionError;
+    private bool isSubmitting;
+    private (string Name, Guid MemberId, int PhotoCount)? registered;
+
+    private readonly List<PhotoEntry> photos = [];
+
+    private async Task OnFilesChangedAsync(InputFileChangeEventArgs e)
+    {
+        // The form controls are disabled while a submission is running, but guard
+        // anyway so the photo list cannot mutate under an in-flight registration.
+        if (isSubmitting || e.FileCount == 0)
+        {
+            return;
+        }
+
+        photoError = null;
+        selectionError = null;
+
+        var added = new List<PhotoEntry>();
+        var rejected = new List<string>();
+        foreach (var file in e.GetMultipleFiles(int.MaxValue))
+        {
+            if (file.Size > MaxPhotoBytes)
+            {
+                rejected.Add(file.Name);
+                continue;
+            }
+
+            var entry = new PhotoEntry(file);
+            photos.Add(entry);
+            added.Add(entry);
+        }
+
+        if (rejected.Count > 0)
+        {
+            selectionError =
+                $"These files exceed the {FormatSize(MaxPhotoBytes)} limit and were not added: {string.Join(", ", rejected)}.";
+        }
+
+        foreach (var entry in added)
+        {
+            await LoadPreviewAsync(entry);
+        }
+    }
+
+    private async Task LoadPreviewAsync(PhotoEntry entry)
+    {
+        try
+        {
+            var format = PreviewFormat(entry.File.Name);
+            var resized = await entry.File.RequestImageFileAsync(format, PreviewMaxDimension, PreviewMaxDimension);
+            await using var stream = resized.OpenReadStream(MaxPhotoBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            var contentType = string.IsNullOrWhiteSpace(resized.ContentType) ? format : resized.ContentType;
+            entry.PreviewDataUrl = $"data:{contentType};base64,{Convert.ToBase64String(buffer.ToArray())}";
+        }
+        catch (Exception ex)
+        {
+            // Preview is best-effort: a placeholder is rendered instead when the
+            // browser cannot decode/resize the file.
+            Logger.LogWarning(ex, "Preview generation failed for {FileName}.", entry.File.Name);
+            entry.PreviewDataUrl = null;
+        }
+    }
+
+    private void RemovePhoto(PhotoEntry photo)
+    {
+        if (isSubmitting)
+        {
+            return;
+        }
+
+        photos.Remove(photo);
+        if (photos.Count > 0)
+        {
+            photoError = null;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        // Face extraction is slow; re-entry would double-submit the registration.
+        if (isSubmitting)
+        {
+            return;
+        }
+
+        nameError = string.IsNullOrWhiteSpace(fullName) ? "Enter the member's full name." : null;
+        photoError = photos.Count == 0 ? "Add at least one photo." : null;
+        if (nameError is not null || photoError is not null)
+        {
+            submissionError = null;
+            return; // Validation failures never clear the form.
+        }
+
+        isSubmitting = true;
+        submissionError = null;
+        var name = fullName.Trim();
+        var photoCount = photos.Count;
+        var streams = new List<Stream>(photoCount);
+        try
+        {
+            foreach (var photo in photos)
+            {
+                // Buffer each upload into memory before the application layer sees it.
+                // Two reasons: Blazor's BrowserFileStream rejects synchronous reads
+                // (the extractor's Image.Load reads synchronously), and a circuit-bound
+                // stream must not stay open across the slow face-extraction call.
+                // Mirrors how the preview path already materializes the file.
+                await using var source = photo.File.OpenReadStream(MaxPhotoBytes);
+                var buffer = new MemoryStream();
+                await source.CopyToAsync(buffer);
+                buffer.Position = 0;
+                streams.Add(buffer);
+            }
+
+            // Mirror the console flow: one fresh DI scope per submission, handler
+            // resolved from that scope, scope disposed when the submission ends.
+            // Resolving the scoped handler from the circuit's own scope instead
+            // would pin its scoped dependencies for the whole circuit lifetime.
+            using var scope = ScopeFactory.CreateScope();
+            var handler = scope.ServiceProvider.GetRequiredService<RegisterMemberCommandHandler>();
+            var command = new RegisterMemberCommand(name, streams);
+            var result = await handler.HandleAsync(command, CancellationToken.None);
+
+            if (result.IsFailure)
+            {
+                // Keep every piece of form state; only the inline message changes.
+                submissionError = MapError(result.Error);
+                return;
+            }
+
+            registered = (name, result.Value.Value, photoCount);
+            fullName = string.Empty;
+            photos.Clear();
+            nameError = null;
+            photoError = null;
+            selectionError = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Member registration submission failed.");
+            submissionError = $"An unexpected error occurred: {ex.Message}";
+        }
+        finally
+        {
+            foreach (var stream in streams)
+            {
+                try
+                {
+                    await stream.DisposeAsync();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to dispose a photo stream after submission.");
+                }
+            }
+
+            isSubmitting = false;
+        }
+    }
+
+    private void DismissSuccess() => registered = null;
+
+    /// <summary>Every <see cref="RegisterMemberError"/> maps to a specific inline message.</summary>
+    private static string MapError(RegisterMemberError error) => error switch
+    {
+        RegisterMemberError.NoFaceDetected =>
+            "No face was detected in at least one photo. Use a clear photo that shows a single face.",
+        RegisterMemberError.MultipleFacesDetected =>
+            "More than one face was detected in at least one photo. Use photos that show only one person.",
+        RegisterMemberError.ExtractionFailed =>
+            "At least one photo could not be processed. Try a different photo.",
+        RegisterMemberError.InvalidMember =>
+            "The member could not be created. Check the full name and photos, then try again.",
+        RegisterMemberError.InvalidName =>
+            "The full name is not valid. Enter the member's full name.",
+        _ => "Registration failed. Please try again."
+    };
+
+    private static string PreviewFormat(string fileName) =>
+        Path.GetExtension(fileName).Equals(".png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg";
+
+    private static string FormatSize(long bytes) => bytes switch
+    {
+        >= 1_048_576 => $"{bytes / 1_048_576.0:0.#} MB",
+        >= 1_024 => $"{bytes / 1_024.0:0.#} KB",
+        _ => $"{bytes} B"
+    };
+
+    private static string PhotoCountLabel(int count) => count == 1 ? "1 photo" : $"{count} photos";
+
+    private sealed class PhotoEntry(IBrowserFile file)
+    {
+        public Guid Id { get; } = Guid.NewGuid();
+
+        public IBrowserFile File { get; } = file;
+
+        public string? PreviewDataUrl { get; set; }
+    }
+}
