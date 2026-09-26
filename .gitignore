@@ -20,3 +20,7 @@ Thumbs.db
 # Node dev toolchain (Enrollment.Web Tailwind CSS build)
 node_modules/
 npm-debug.log*
+
+# Local SQLite vector store (runtime data, never versioned)
+camguard-enrollment.db
+camguard-*.db-*

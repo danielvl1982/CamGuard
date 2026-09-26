@@ -186,13 +186,20 @@ server-side regardless of stack (this forced a server host in every option).
   rebuilt one-shot → `wwwroot/app.css` 13,244 → **13,473 bytes**, all four present.
   *Pending for T6:* browser smoke of `/members` (empty state → register → table).
 
-- [ ] **T6 — Full verification & closure**
+- [x] **T6 — Full verification & closure**
   `dotnet build` + full `dotnet test`, manual end-to-end smoke (register → list),
   RDD candidate assessment per commit if enabled, final work-unit commit,
   feature-doc evidence refresh.
   *Acceptance:* all checks green or failures recorded honestly.
   *Route:* inline (bounded verification).
-  *Evidence:* pending.
+  *Evidence:* 2026-09-26. `dotnet build CamGuard.slnx` → exit 0, 0 errors / 10 pre-existing
+  warnings (8× NU1902 OpenTelemetry 1.13.1 advisory, 2× CS9057 Moq.AutoMocker generator skew).
+  `dotnet test` → **131/131 passed** (Monitoring 63 + Enrollment 68). CSS fresh:
+  input 4,185 bytes (12:54:21) < output 13,473 bytes (14:02:03); `bg-accent`,
+  `max-w-3xl`, `:focus-visible` present in output. Worktree at verify time showed exactly
+  `M .gitignore` + `M photos/.gitignore` (no extras). Closure commit: gitignore hygiene
+  (local SQLite `camguard-*.db*` + uncommented `photos/*.jpg|jpeg|png` ignores).
+  Browser smoke register → list left to user pre-pull acceptance (their call 2026-09-26).
 
 ## Acceptance criteria (feature-level)
 
