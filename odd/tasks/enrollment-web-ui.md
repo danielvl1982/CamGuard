@@ -164,12 +164,27 @@ server-side regardless of stack (this forced a server host in every option).
   *Pending for T6:* interactive browser smoke (blank-image → inline gate error; real photo →
   success + persisted row) — compile-verified only so far.
 
-- [ ] **T5 — Members list page**
+- [x] **T5 — Members list page**
   `Members.razor`: read-only table/list from `ListAllAsync` (FullName + MemberId), empty
   state, linked navigation from layout.
   *Acceptance:* `dotnet build` green; smoke shows members registered via T4.
   *Route:* delegated writer (writer trigger: 2 files: page + nav link).
-  *Evidence:* pending.
+  *Evidence:* 2026-09-26. 2 paths: `Components/Pages/Members.razor` (new) +
+  `Components/Layout/MainLayout.razor` (nav link).
+  **Render mode: static SSR + `@attribute [StreamRendering]`, no `@rendermode`** — the page
+  has no event handlers, so a SignalR circuit buys nothing; streaming rendering is what makes
+  the required loading state observable (plain static SSR blocks the whole response until
+  `OnInitializedAsync` completes). **Scope: direct scoped injection of
+  `IMemberVectorRepository`** — static SSR has no circuit, each page load is its own HTTP
+  request scope disposed at response end, so a manual `IServiceScopeFactory` scope would only
+  duplicate that lifetime. `CancellationToken` comes from
+  `[CascadingParameter] HttpContext.RequestAborted` with a `CancellationToken.None` fallback.
+  States: loading / empty (links to `/register`) / inline error / table (FullName + MemberId,
+  storage order). Verified: `dotnet test CamGuard.slnx` → **131 passed / 0 failed**
+  (Enrollment 68 + Monitoring 63); `dotnet build` → 0 errors.
+  **CSS normalized:** 4 new utilities (`max-w-3xl`, `text-left`, `py-3`, `text-center`)
+  rebuilt one-shot → `wwwroot/app.css` 13,244 → **13,473 bytes**, all four present.
+  *Pending for T6:* browser smoke of `/members` (empty state → register → table).
 
 - [ ] **T6 — Full verification & closure**
   `dotnet build` + full `dotnet test`, manual end-to-end smoke (register → list),
@@ -233,3 +248,6 @@ with disclosure — a client-runtime limitation, not a scope change.
   / 2488 lines, medium, `slice_budget_reached`): **"Skip this time" again** →
   `declined_this_candidate`. Boundary still `f5ba6de`. Scope-per-submit chosen over direct
   scoped injection to match the console and avoid pinning scoped deps for a circuit's life.
+- 2026-09-26 — T5 landed (Members page, 2 paths + rebuilt CSS). Third RDD consent (27 files /
+  2976 lines, medium): **"Skip this time" again** → `declined_this_candidate`. Static SSR +
+  StreamRendering chosen over an interactive island because the page has no event handlers.
