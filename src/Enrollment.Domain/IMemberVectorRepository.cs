@@ -14,4 +14,7 @@ public interface IMemberVectorRepository
 
     /// <summary>Finds a member by normalized <c>FullName</c> (trim + <see cref="StringComparison.OrdinalIgnoreCase"/>), or <c>null</c> when none matches.</summary>
     Task<Member?> FindByFullNameAsync(string fullName, CancellationToken cancellationToken);
+
+    /// <summary>Returns every enrolled member in storage order (order is not guaranteed), or an empty list when none are enrolled.</summary>
+    Task<IReadOnlyList<Member>> ListAllAsync(CancellationToken cancellationToken);
 }

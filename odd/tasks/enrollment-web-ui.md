@@ -71,23 +71,40 @@ server-side regardless of stack (this forced a server host in every option).
 
 ## Tasks
 
-- [ ] **T1 — Scaffold `src/Enrollment.Web` host**
+- [x] **T1 — Scaffold `src/Enrollment.Web` host**
   csproj (Web SDK, project refs Application+Infrastructure, FaceAiSharp/ONNX packages),
   `Program.cs` (WebApplicationBuilder + `AddEnrollment(configuration)` + Blazor interactive
   server wiring), minimal App/Routes/Layout/Home, launchSettings.
   *Acceptance:* `dotnet build` green; `dotnet run` serves the home page (HTTP 200).
   *Route:* delegated writer (writer trigger: 4+ new non-trivial files).
-  *Evidence:* pending.
+  *Evidence:* commit `27f8d24`. Verified 2026-09-26: `dotnet build src/Enrollment.Web` →
+  `Compilación correcta, 0 warnings / 0 errors`; server responds `HTTP 200` on
+  `http://localhost:5203` (profile `http`), serves `Home.razor` = "Hello, world!".
 
-- [ ] **T2 — `ListAllAsync` repository method**
+- [x] **T2 — `ListAllAsync` repository method**
   Add `Task<IReadOnlyList<Member>> ListAllAsync(CancellationToken)` to
   `IMemberVectorRepository`, implement in `SqliteVecMemberRepository`
   (verify SqliteVec preview enumeration support; fallback: raw SQL via Microsoft.Data.Sqlite
-  on the same table), tests in `tests/Enrollment.UnitTests` following `FindByFullNameTests`
-  patterns.
+  on the same table), tests in `tests/Enrollment.UnitTests` following
+  `FindByFullNameTests` patterns.
   *Acceptance:* `dotnet test` green including new list tests.
   *Route:* delegated writer (writer trigger: 3 non-trivial files: port + impl + tests).
-  *Evidence:* pending.
+  *Evidence:* 2026-09-26. 3 files: `src/Enrollment.Domain/IMemberVectorRepository.cs`,
+  `src/Enrollment.Infrastructure/SqliteVecMemberRepository.cs`,
+  `tests/Enrollment.UnitTests/ListAllAsyncTests.cs` (new, 5 tests).
+  **Raw-SQL fallback NOT needed** — preview `GetAsync(r => true, int.MaxValue, …)` +
+  `EnsureCollectionExistsAsync` enumerates fine (probed empirically against
+  `CommunityToolkit.VectorData.SqliteVec` 1.0.1-preview).
+  **`IncludeVectors: true` is forced**: probe showed `false` yields `Embedding = null` and
+  `Member.Rehydrate` requires a validated `FaceEmbedding`, so the port's `IReadOnlyList<Member>`
+  return type mandates vector materialization (documented in code; identity-only DTO would be
+  a T5+ signature change). Order is storage order → tests assert set membership, not order.
+  `dotnet test CamGuard.slnx` → **131 passed / 0 failed** (Enrollment 68 = 63 prior + 5 new;
+  Monitoring 63). `dotnet build CamGuard.slnx` → 0 errors (9 pre-existing warnings: NU1902
+  OpenTelemetry advisory ×7, CS9057 Moq.AutoMocker analyzer, NU1902 test project).
+  *Note:* solution build only goes green after stopping the T1 smoke server (PID 11632) —
+  it locks `Enrollment.Web\bin` output (MSB3021/MSB3027). A/B stash check proved the lock was
+  environmental, not code.
 
 - [ ] **T3 — Tailwind 4 + dark token system + layout zones**
   Dev-only `package.json` in `Enrollment.Web` (`@tailwindcss/cli` build/watch →
@@ -156,3 +173,11 @@ with disclosure — a client-runtime limitation, not a scope change.
 - 2026-09-25 — Feature doc created after stack study (Blazor+Tailwind) and scope decision
   (register + members list). Route: ODD, user preference: document each phase in this file
   automatically. Chain strategy question pending before first commit.
+- 2026-09-25 — Chain strategy: `stacked-to-main` chosen by user; delivery `ask-on-risk`
+  (forecast ~800 lines > 400 budget). PR slicing per task group above.
+- 2026-09-26 — T1 landed as `27f8d24` (host scaffold). Startup smoke: server on :5203,
+  HTTP 200. Orphan instance from prior session held the port (`AddressInUseException` on
+  relaunch) — kill it before a solution build or a `dotnet run`.
+- 2026-09-26 — T2 landed (ListAllAsync): 3 files, 5 new tests, solution suite 131 green.
+  Writer returned `partial` only for the bin-dir file lock; stashed A/B proved 0 CS errors.
+  RDD is **on (global)** — per-commit assessment runs after each work-unit commit.

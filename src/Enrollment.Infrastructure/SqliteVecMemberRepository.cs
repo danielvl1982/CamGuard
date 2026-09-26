@@ -102,4 +102,31 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
         activity?.SetTag("lookup.found", false);
         return null;
     }
+
+    public async Task<IReadOnlyList<Member>> ListAllAsync(CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity("Enrollment.VectorStore.ListAll");
+        var startTimestamp = Stopwatch.GetTimestamp();
+
+        // Required: enumerating a collection that was never created throws VectorStoreException
+        // (verified against CommunityToolkit.VectorData.SqliteVec 1.0.1-preview).
+        await _collection.EnsureCollectionExistsAsync(cancellationToken);
+
+        // Vectors must be materialized even though a directory only displays identity fields:
+        // IncludeVectors=false returns records with a null Embedding, and Member.Rehydrate
+        // (via MemberVectorRecordMapper.ToMember) requires a validated FaceEmbedding.
+        var options = new FilteredRecordRetrievalOptions<MemberVectorRecord> { IncludeVectors = true };
+
+        var members = new List<Member>();
+
+        await foreach (var record in _collection.GetAsync(r => true, int.MaxValue, options, cancellationToken).ConfigureAwait(false))
+        {
+            members.Add(MemberVectorRecordMapper.ToMember(record));
+        }
+
+        activity?.SetTag("count", members.Count);
+        activity?.SetTag("latency", Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds);
+
+        return members;
+    }
 }
