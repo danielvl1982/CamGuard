@@ -203,13 +203,20 @@ the user (session 2026-09-27).
   *Fix on close:* added missing `.webp` content type (T2 stores webp via magic-byte
   sniff); removed stray runtime `src/Enrollment.Web/photos/` artifact.
 
-- [ ] **T6 — Total image delete**
+- [x] **T6 — Total image delete — DONE**
   Backend delete path (record + file, both or nothing) + per-image "Delete" action on
   the detail page with confirmation; guard against deleting an image of another member
   (server-side `memberId` scoping). Tailwind rebuild if needed.
   *Acceptance:* build green; smoke: delete → file gone from disk, record gone, gallery
   refreshes.
   *Route:* delegated (writer trigger: 2+ non-trivial files).
+  *Evidence:* 2026-09-27. 1 file: `MemberDetail.razor` (+118/-2) — per-image
+  Delete with two-step inline confirm (T4 precedent, `isDeleting` re-entry guard,
+  no JS, `role="status"`/`role="alert"` notices), short scope per action, reuses T2
+  `DeleteAsync` (file-first-then-record), server-side scoping guard via re-list
+  (`owned is null` → inline not-found, `KeyNotFoundException` handled), gallery
+  refresh via `ListByMemberAsync`. No CSS rebuild — classes verified in built CSS.
+  Verified: build 0 errors; Enrollment 94/94. Parent spot-check: build 0 errors.
 
 - [ ] **T7 — Add images from the detail page**
   `InputFile` on `/members/{id}` → new application command (extraction + T3 validator +
@@ -281,3 +288,6 @@ the user (session 2026-09-27).
   wiring, webp fix on close). Prior two T5 attempts left the same 3 paths uncommitted
   in the worktree (build was already green); closed inline with verification
   (build 0 errors, Enrollment 94/94, CSS check, stray photos/ removed).
+- 2026-09-27 — T6 landed (MemberDetail.razor +118/-2, delete confirm + scoping guard,
+  reuses T2 DeleteAsync). Verified: build 0 errors, Enrollment 94/94.
+  Parent spot-check: build 0 errors + diff readback.

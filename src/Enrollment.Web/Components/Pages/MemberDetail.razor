@@ -51,6 +51,19 @@
 
         <div class="rounded-lg border border-border bg-surface p-6">
             <h2 class="mb-6 text-xl font-semibold text-text">Stored images</h2>
+            @if (deleteNotice is not null)
+            {
+                @if (deleteNoticeIsError)
+                {
+                    <p class="validation-message text-sm" role="alert">@deleteNotice</p>
+                }
+                else
+                {
+                    <div class="mb-6 rounded-lg border border-border bg-surface p-4" role="status">
+                        <p class="text-sm text-text">@deleteNotice</p>
+                    </div>
+                }
+            }
             @if (images is null || images.Count == 0)
             {
                 <div class="rounded-lg border border-border bg-surface p-6 text-center" role="status">
@@ -71,12 +84,39 @@
                                 <p class="truncate text-sm text-text">@image.FileName</p>
                                 <p class="text-sm text-text-muted">Stored @image.StoredAtUtc.ToString("u")</p>
                             </div>
+                            <div class="shrink-0">
+                                @if (pendingDeleteId is not null && pendingDeleteId.Equals(image.Id))
+                                {
+                                    <span class="text-sm text-text-muted">Confirm delete?</span>
+                                    <button type="button"
+                                            class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                            disabled="@(isDeleting ? "disabled" : null)"
+                                            @onclick="() => ConfirmDeleteAsync(image)">
+                                        @(isDeleting ? "Deleting…" : "Yes, delete")
+                                    </button>
+                                    <button type="button"
+                                            class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                            disabled="@(isDeleting ? "disabled" : null)"
+                                            @onclick="CancelDelete">
+                                        Cancel
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button"
+                                            class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                            disabled="@(isDeleting ? "disabled" : null)"
+                                            @onclick="() => ArmDelete(image)">
+                                        Delete
+                                    </button>
+                                }
+                            </div>
                         </li>
                     }
                 </ul>
             }
-            @* T6 (per-image delete) + T7 (add images) actions slot in below this
-               line — gallery list and identity block above stay untouched. *@
+            @* T7 (add images) action slots in below this line — gallery list
+               and identity block above stay untouched. *@
         </div>
     }
 </div>
@@ -90,6 +130,10 @@
     private bool isLoading = true;
     private bool notFound;
     private string? loadError;
+    private MemberImageId? pendingDeleteId;
+    private bool isDeleting;
+    private string? deleteNotice;
+    private bool deleteNoticeIsError;
 
     protected override async Task OnParametersSetAsync() => await LoadAsync();
 
@@ -131,6 +175,78 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private void ArmDelete(MemberImage image)
+    {
+        if (isDeleting)
+        {
+            return;
+        }
+
+        pendingDeleteId = image.Id;
+        deleteNotice = null;
+    }
+
+    private void CancelDelete()
+    {
+        if (isDeleting)
+        {
+            return;
+        }
+
+        pendingDeleteId = null;
+    }
+
+    private async Task ConfirmDeleteAsync(MemberImage image)
+    {
+        if (isDeleting || member is null)
+        {
+            return;
+        }
+
+        isDeleting = true;
+        deleteNotice = null;
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var imageStore = scope.ServiceProvider.GetRequiredService<IMemberImageRepository>();
+
+            // Server-side scoping guard: only delete a record that belongs to
+            // the displayed member. Re-listing first also covers the race where
+            // the image was already deleted (then surfaced as not-found).
+            var stored = await imageStore.ListByMemberAsync(member.Id, CancellationToken.None);
+            var owned = stored.FirstOrDefault(candidate => candidate.Id.Equals(image.Id));
+            if (owned is null)
+            {
+                pendingDeleteId = null;
+                deleteNotice = "That image was not found. It may already have been deleted.";
+                deleteNoticeIsError = true;
+                return;
+            }
+
+            await imageStore.DeleteAsync(image.Id, CancellationToken.None);
+            pendingDeleteId = null;
+            images = await imageStore.ListByMemberAsync(member.Id, CancellationToken.None);
+            deleteNotice = "Image deleted.";
+            deleteNoticeIsError = false;
+        }
+        catch (KeyNotFoundException)
+        {
+            pendingDeleteId = null;
+            deleteNotice = "That image was not found. It may already have been deleted.";
+            deleteNoticeIsError = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete image {ImageId} of member {MemberId}.", image.Id, member.Id);
+            deleteNotice = "Could not delete the image. Please try again.";
+            deleteNoticeIsError = true;
+        }
+        finally
+        {
+            isDeleting = false;
         }
     }
 }
