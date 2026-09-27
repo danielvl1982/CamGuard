@@ -56,6 +56,7 @@ public static class EnrollmentServiceCollectionExtensions
         services.TryAddScoped<IFaceEmbeddingExtractor, FaceAiSharpEmbeddingExtractor>();
         services.TryAddScoped<IMemberVectorRepository, SqliteVecMemberRepository>();
         services.TryAddScoped<IMemberImageRepository, SqliteVecMemberImageRepository>();
+        services.TryAddScoped<IIncidentRepository, SqliteIncidentRepository>();
         services.TryAddScoped<IMemberImageDuplicateValidator>(sp =>
             new MemberImageDuplicateValidator(
                 sp.GetRequiredService<IMemberImageRepository>(),

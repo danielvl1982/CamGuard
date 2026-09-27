@@ -27,6 +27,12 @@ public sealed class VectorStoreOptions
     public string MemberImagesCollectionName { get; set; } = "member_images";
 
     /// <summary>
+    /// Name of the plain SQLite table holding incident-log records (incident-log T2).
+    /// A plain table — not a vector collection — because incidents need no vector
+    /// search, only newest-first listing.
+    /// </summary>
+    public string IncidentsTableName { get; set; } = "incidents";
+    /// <summary>
     /// Cosine-DISTANCE threshold for the cross-member duplicate-face gate (member-crud
     /// T3, OD2): a candidate embedding whose nearest stored image of ANOTHER member is
     /// strictly BELOW this distance is rejected as a duplicate. Same convention as
