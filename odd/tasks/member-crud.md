@@ -113,16 +113,34 @@ the user (session 2026-09-27).
   *Risks carried:* top-K=10 depth (fail-safe deny beyond 10 nearer annulled);
   read-modify-write last-write-wins on concurrent annul/restore (single-admin UI, OK).
 
-- [ ] **T2 — Image persistence port + register wiring**
+- [x] **T2 — Image persistence port + register wiring — DONE**
   `IMemberImageRepository` (domain port): `SaveAsync(memberId, stream/embedding) →
-  imageId`, `ListByMemberAsync(memberId)`, `DeleteAsync(memberId, imageId)`; adapter
-  storing files under `photos/members/<memberId>/<imageId>.<ext>` + `MemberImageRecord`
-  (`Id`, `MemberId`, `FilePath`, per-image `Embedding`) in a new vector collection.
+  imageId`, `ListByMemberAsync`, `DeleteAsync`; file layout `photos/members/<memberId>/`;
+  new vector collection `MemberImageRecord` (`Id`, `MemberId`, `FilePath`, per-image
+  `Embedding`) in a new vector collection.
   Wire `RegisterMemberCommandHandler` to persist ALL submitted photos (alta now stores
-  images, not just `embeddings[0]`). Tests: save/list/delete round-trip, file exists,
-  register produces N files + N records.
+  images, not just `embeddings[0]`). Tests.
   *Acceptance:* `dotnet test` green; a web registration leaves files + records.
   *Route:* delegated (writer trigger: 4+ non-trivial files).
+  *Evidence:* 2026-09-27. 7 new + 3 modified: `MemberImageId` (Guid-backed +
+  `MemberImageIdError`), `MemberImage` (read-model `Id/MemberId/FileName/Embedding/
+  StoredAtUtc`), `IMemberImageRepository` (+`ListAllAsync` with vectors for T3),
+  `MemberImageRecord`/`Mapper` (new `member_images` collection), new
+  `SqliteVecMemberImageRepository` (T1-style `ALTER TABLE` migration; delete is
+  file-first-then-record so failures surface with record intact; record-write failure
+  best-effort removes the file), `MemberImageTests` (9 tests), `VectorStoreOptions`
+  (+`MemberImagesRoot` default `photos/members`, +`MemberImagesCollectionName`,
+  auto-bound), DI registration, handler persists every photo (magic-byte extension
+  sniff; images saved BEFORE the member record → store failure = new
+  `ImageStoreFailed`, member NOT persisted; compensation on mid-batch failure; caller
+  streams copied, never disposed, left at position 0; no annul gating).
+  Verified: build 0 errors (10 pre-existing warnings); Enrollment tests 86/86
+  (77 + 9 new). Parent spot-check: MemberImage 9/9.
+  *Notes for later:* actual layout `<MemberImagesRoot>/<memberId>/<imageId>.<ext>`
+  (= `photos/members/<id>/…`, as specced). T5 image endpoint: no byte-read method on
+  the port — reconstruct path from options + `MemberImage.FileName` (or add one in T5).
+  Residual orphan direction: member-save failure after images land leaves orphan images
+  (pre-existing error class, unchanged).
 
 - [ ] **T3 — Duplicate-face validation (alta + adición)**
   Shared validator: extract embedding → search other members' image embeddings (exclude
@@ -208,3 +226,7 @@ the user (session 2026-09-27).
   recognition.** T1 scope extended to post-filter `FindNearestAsync`.
 - 2026-09-27 — **Chain strategy: `stacked-to-main` (user).** PR slicing: PR1=T1+T2,
   PR2=T3+T4, PR3=T5+T6+T7, PR4=T8. Ready to start T1.
+- 2026-09-27 — T1 landed as `ac5b7bf` (7 files, 392 insertions, tests 140/140 green,
+  spot-check MemberAnnul 9/9). RDD assess (base 1bd2117): medium, `slice_budget_reached`
+  → review offered, **user chose "Skip this time"** → `declined_this_candidate`,
+  candidate-scoped. Reviewed boundary stays at `1bd2117`.
