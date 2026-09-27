@@ -169,12 +169,22 @@ the user (session 2026-09-27).
   tests. Verified: build 0 errors; Enrollment 94/94. Parent spot-check:
   MemberDuplicateFace 8/8. T7 contract: pass owner id, resolve name via `FindByIdAsync`.
 
-- [ ] **T4 — Members list: annul action**
+- [x] **T4 — Members list: annul action — DONE**
   `/members` gains a per-row "Annul" action with confirmation (static SSR must become an
   interactive island or form POST), annulled users no longer listed (per OD1 scope),
   row links to the detail page. Tailwind rebuild if new utility classes appear.
   *Acceptance:* build green; smoke: annul → row disappears, member record still present.
   *Route:* delegated (writer trigger: 2+ non-trivial files).
+  *Evidence:* 2026-09-27. 1 file: `Members.razor` → `@rendermode InteractiveServer`
+  (removed `[StreamRendering]` + `HttpContext` cascade, both SSR-only); `IServiceScopeFactory`
+  + one short scope per action (Register precedent, no scoped repo pinned in the circuit);
+  two-step inline confirm per row, no JS (`Annul` → `Confirm annul?` → `Yes, annul`/
+  `Cancel`, `isAnnulling` re-entry guard); confirm calls `SetAnnulledAsync` then reloads
+  via `ListAllAsync` (T1 filters, no client filtering); transient `role="status"`/
+  `role="alert"` notice; name links to `/members/{id}` (404 until T5, expected).
+  No CSS rebuild — all classes already in built CSS (verified via Select-String).
+  Verified: build 0 errors (10 pre-existing warnings); Enrollment 94/94, no new tests.
+  Parent spot-check: build 0 errors.
 
 - [ ] **T5 — Member detail page + image endpoint**
   `/members/{id}` route: identity block + image gallery (thumbnails) + empty state;
@@ -250,3 +260,7 @@ the user (session 2026-09-27).
   86/86, spot-check MemberImage 9/9). RDD assess: medium, `slice_budget_reached`
   (cumulative 1382 lines) → review offered, **"Skip this time" again** →
   `declined_this_candidate`. Boundary stays at `1bd2117`.
+- 2026-09-27 — T3 landed as `3f0809b` (11 files, 492 insertions, Enrollment 94/94,
+  spot-check MemberDuplicateFace 8/8). RDD assess: medium, `slice_budget_reached`
+  (cumulative 1874 lines) → **"Skip this time" (3rd)** → `declined_this_candidate`.
+  Boundary stays at `1bd2117`.

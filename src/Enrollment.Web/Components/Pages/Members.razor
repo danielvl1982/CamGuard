@@ -1,18 +1,31 @@
 @page "/members"
-@attribute [StreamRendering]
+@rendermode InteractiveServer
 
 @using Enrollment.Domain
-@inject IMemberVectorRepository MemberRepository
+@inject IServiceScopeFactory ScopeFactory
 @inject ILogger<Members> Logger
 
-@* Static SSR: the directory is read-only (no event handlers, no state changes after
-   load), so no interactive circuit is needed. [StreamRendering] is what makes the
-   loading state observable — without it, static SSR blocks the whole response until
-   OnInitializedAsync completes and the browser never sees the placeholder. *@
+@* InteractiveServer: the per-row Annul action needs event handlers. Scoped
+   IMemberVectorRepository is never injected into the circuit (Register.razor
+   precedent) — one short scope is created per load/annul action instead. *@
 <PageTitle>Members</PageTitle>
 
 <div class="mx-auto w-full max-w-3xl">
     <h1 class="mb-6 text-xl font-semibold text-text">Members</h1>
+
+    @if (notice is not null)
+    {
+        @if (noticeIsError)
+        {
+            <p class="validation-message text-sm" role="alert">@notice</p>
+        }
+        else
+        {
+            <div class="mb-6 rounded-lg border border-border bg-surface p-4" role="status">
+                <p class="text-sm text-text">@notice</p>
+            </div>
+        }
+    }
 
     @if (isLoading)
     {
@@ -39,14 +52,42 @@
                     <tr class="bg-elevated text-left">
                         <th scope="col" class="px-4 py-3 font-semibold text-text">Full name</th>
                         <th scope="col" class="px-4 py-3 font-semibold text-text">Member ID</th>
+                        <th scope="col" class="px-4 py-3 font-semibold text-text">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var member in members)
                     {
                         <tr @key="member.Id" class="border-t border-border">
-                            <td class="px-4 py-3 text-text">@member.FullName</td>
+                            <td class="px-4 py-3 text-text"><a href="@($"/members/{member.Id}")">@member.FullName</a></td>
                             <td class="px-4 py-3 text-text-muted"><code>@member.Id</code></td>
+                            <td class="px-4 py-3 text-text">
+                                @if (pendingAnnulId is not null && pendingAnnulId.Equals(member.Id))
+                                {
+                                    <span class="text-sm text-text-muted">Confirm annul?</span>
+                                    <button type="button"
+                                            class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                            disabled="@(isAnnulling ? "disabled" : null)"
+                                            @onclick="() => ConfirmAnnulAsync(member)">
+                                        @(isAnnulling ? "Annulling…" : "Yes, annul")
+                                    </button>
+                                    <button type="button"
+                                            class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                            disabled="@(isAnnulling ? "disabled" : null)"
+                                            @onclick="CancelAnnul">
+                                        Cancel
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button"
+                                            class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                            disabled="@(isAnnulling ? "disabled" : null)"
+                                            @onclick="() => ArmAnnul(member)">
+                                        Annul
+                                    </button>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -56,25 +97,23 @@
 </div>
 
 @code {
-    // HttpContext cascades only during static SSR (null under interactive rendering);
-    // RequestAborted cancels the read when the client disconnects mid-load.
-    [CascadingParameter]
-    private HttpContext? HttpContext { get; set; }
-
     private IReadOnlyList<Member>? members;
     private string? loadError;
     private bool isLoading = true;
+    private MemberId? pendingAnnulId;
+    private bool isAnnulling;
+    private string? notice;
+    private bool noticeIsError;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
     {
-        var cancellationToken = HttpContext?.RequestAborted ?? CancellationToken.None;
         try
         {
-            members = await MemberRepository.ListAllAsync(cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            // Client disconnected; the response is already gone.
+            using var scope = ScopeFactory.CreateScope();
+            var repository = scope.ServiceProvider.GetRequiredService<IMemberVectorRepository>();
+            members = await repository.ListAllAsync(CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -85,6 +124,65 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private void ArmAnnul(Member member)
+    {
+        if (isAnnulling)
+        {
+            return;
+        }
+
+        pendingAnnulId = member.Id;
+        notice = null;
+    }
+
+    private void CancelAnnul()
+    {
+        if (isAnnulling)
+        {
+            return;
+        }
+
+        pendingAnnulId = null;
+    }
+
+    private async Task ConfirmAnnulAsync(Member member)
+    {
+        if (isAnnulling)
+        {
+            return;
+        }
+
+        isAnnulling = true;
+        notice = null;
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var repository = scope.ServiceProvider.GetRequiredService<IMemberVectorRepository>();
+            await repository.SetAnnulledAsync(member.Id, true, CancellationToken.None);
+            pendingAnnulId = null;
+            await LoadAsync();
+            // ListAllAsync already excludes annulled members (T1), so the row
+            // disappears on refresh — no client-side filtering needed.
+            notice = $"Member '{member.FullName}' was annulled.";
+            noticeIsError = false;
+        }
+        catch (KeyNotFoundException)
+        {
+            notice = $"Member '{member.FullName}' was not found. It may already have been removed.";
+            noticeIsError = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to annul member {MemberId}.", member.Id);
+            notice = $"Could not annul '{member.FullName}'. Please try again.";
+            noticeIsError = true;
+        }
+        finally
+        {
+            isAnnulling = false;
         }
     }
 }
