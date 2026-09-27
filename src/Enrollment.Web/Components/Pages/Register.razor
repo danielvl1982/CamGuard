@@ -295,7 +295,7 @@
     private void DismissSuccess() => registered = null;
 
     /// <summary>Every <see cref="RegisterMemberError"/> maps to a specific inline message.</summary>
-    private static string MapError(RegisterMemberError error) => error switch
+    private static string MapError(RegisterMemberFailure failure) => failure.Error switch
     {
         RegisterMemberError.NoFaceDetected =>
             "No face was detected in at least one photo. Use a clear photo that shows a single face.",
@@ -307,6 +307,10 @@
             "The member could not be created. Check the full name and photos, then try again.",
         RegisterMemberError.InvalidName =>
             "The full name is not valid. Enter the member's full name.",
+        RegisterMemberError.MatchesOtherMember when !string.IsNullOrWhiteSpace(failure.MatchedMemberName) =>
+            $"This face appears to already be registered to {failure.MatchedMemberName}. Use a photo of the new member.",
+        RegisterMemberError.MatchesOtherMember =>
+            "This face appears to already be registered to another member. Use a photo of the new member.",
         _ => "Registration failed. Please try again."
     };
 

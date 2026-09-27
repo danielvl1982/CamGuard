@@ -9,6 +9,7 @@ internal static class MemberVectorRecordMapper
     {
         Id = member.Id.Value.ToString(),
         FullName = member.FullName,
+        IsAnnulled = member.IsAnnulled,
         Embedding = [.. member.Embedding.Vector]
     };
 
@@ -16,7 +17,7 @@ internal static class MemberVectorRecordMapper
     {
         var memberId = MemberId.From(Guid.Parse(record.Id)).Value;
         var embedding = FaceEmbedding.FromVector(record.Embedding).Value;
-        return Member.Rehydrate(memberId, record.FullName, embedding);
+        return Member.Rehydrate(memberId, record.FullName, embedding, record.IsAnnulled);
     }
 
     public static string Normalize(string fullName) => fullName.Trim();

@@ -1,4 +1,5 @@
 using Enrollment.Infrastructure;
+using Enrollment.Web;
 using Enrollment.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,5 +28,8 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// Member image bytes live outside wwwroot — streamed by the T5 minimal API.
+app.MapMemberImageEndpoints();
 
 app.Run();
