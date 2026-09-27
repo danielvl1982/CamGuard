@@ -25,4 +25,20 @@ public sealed class VectorStoreOptions
 
     /// <summary>Name of the vector-store collection/table holding per-image records (own embedding each).</summary>
     public string MemberImagesCollectionName { get; set; } = "member_images";
+
+    /// <summary>
+    /// Cosine-DISTANCE threshold for the cross-member duplicate-face gate (member-crud
+    /// T3, OD2): a candidate embedding whose nearest stored image of ANOTHER member is
+    /// strictly BELOW this distance is rejected as a duplicate. Same convention as
+    /// <c>MemberVectorRecord.Embedding</c> — 0 = identical, 2 = opposite, so LOWER means
+    /// more similar and a LOWER threshold is stricter (fewer false rejections).
+    /// Default 0.4 (≈ cosine similarity 0.6): a conservative same-person cutoff for
+    /// ArcFace-family embeddings, which typically place same-person pairs well below
+    /// 0.4 distance and different-person pairs well above 0.6, leaving a wide gray
+    /// zone — 0.4 stays on the strict side of it to avoid blocking legitimate
+    /// registrations. OD2 CALIBRATION PENDING: tune against real photos (measure the
+    /// actual same-person vs different-person distance distributions) before relying
+    /// on this default in production.
+    /// </summary>
+    public double DuplicateFaceDistanceThreshold { get; set; } = 0.4;
 }

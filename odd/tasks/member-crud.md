@@ -142,7 +142,7 @@ the user (session 2026-09-27).
   Residual orphan direction: member-save failure after images land leaves orphan images
   (pre-existing error class, unchanged).
 
-- [ ] **T3 — Duplicate-face validation (alta + adición)**
+- [x] **T3 — Duplicate-face validation (alta + adición) — DONE**
   Shared validator: extract embedding → search other members' image embeddings (exclude
   the same `memberId`) → below-threshold distance ⇒ failure carrying the matched member's
   name. Config threshold (options section bound in `AddEnrollment`). New
@@ -152,6 +152,22 @@ the user (session 2026-09-27).
   *Acceptance:* `dotnet test` green; registering a face already enrolled to another
   member fails with a message naming that member and persists NOTHING.
   *Route:* delegated (writer trigger: 3+ non-trivial files).
+  *Evidence:* 2026-09-27. New `MemberImageDuplicateValidator`
+  (`IMemberImageDuplicateValidator.FindMatchAsync(candidate, ownerMemberId?, ct) →
+  DuplicateFaceMatch?`, client-side enumeration over image `ListAllAsync`, match iff
+  cosine distance strictly below threshold) + `DuplicateFaceDistanceThreshold` option
+  (default **0.4** ≈ similarity 0.6, conservative ArcFace same-person cutoff, marked
+  OD2-calibration-pending). Handler runs the gate after face+name validation, before
+  ANY persistence (owner null at alta); new `RegisterMemberError.MatchesOtherMember` +
+  `RegisterMemberFailure` payload (handler now returns
+  `Result<MemberId, RegisterMemberFailure>`); matched name via new
+  `IMemberVectorRepository.FindByIdAsync` (returns annulled too, unlike list);
+  `Register.razor` maps the new error ("This face appears to already be registered to
+  {name}…", existing CSS only). Tests: new `MemberDuplicateFaceTests` (8: reject+name+
+  zero-persistence, owner exclusion, best-match id+distance, boundary 0.39/0.41,
+  annulled still rejects, second-photo match stores nothing) + updated handler/image
+  tests. Verified: build 0 errors; Enrollment 94/94. Parent spot-check:
+  MemberDuplicateFace 8/8. T7 contract: pass owner id, resolve name via `FindByIdAsync`.
 
 - [ ] **T4 — Members list: annul action**
   `/members` gains a per-row "Annul" action with confirmation (static SSR must become an
@@ -230,3 +246,7 @@ the user (session 2026-09-27).
   spot-check MemberAnnul 9/9). RDD assess (base 1bd2117): medium, `slice_budget_reached`
   → review offered, **user chose "Skip this time"** → `declined_this_candidate`,
   candidate-scoped. Reviewed boundary stays at `1bd2117`.
+- 2026-09-27 — T2 landed as `76c4244` (11 files, 783 insertions, Enrollment tests
+  86/86, spot-check MemberImage 9/9). RDD assess: medium, `slice_budget_reached`
+  (cumulative 1382 lines) → review offered, **"Skip this time" again** →
+  `declined_this_candidate`. Boundary stays at `1bd2117`.

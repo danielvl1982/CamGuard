@@ -181,8 +181,31 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
         return null;
     }
 
-    public async Task<Member?> FindByFullNameAsync(string fullName, CancellationToken cancellationToken)
+    /// <summary>
+    /// Point lookup by id for the duplicate-face gate's name resolution (member-crud
+    /// T3): returns annulled members too (OD2 matches against their images, so their
+    /// names must resolve), unlike <see cref="ListAllAsync"/> which hides them.
+    /// </summary>
+    public async Task<Member?> FindByIdAsync(MemberId id, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(id);
+
+        using var activity = _activitySource.StartActivity("Enrollment.VectorStore.FindById");
+
+        await EnsureSchemaAsync(cancellationToken);
+
+        // Vectors must be materialized: the mapper requires a validated FaceEmbedding.
+        var retrieval = new RecordRetrievalOptions { IncludeVectors = true };
+        var record = await _collection.GetAsync(id.Value.ToString(), retrieval, cancellationToken).ConfigureAwait(false);
+        if (record is null)
+        {
+            return null;
+        }
+
+        return MemberVectorRecordMapper.ToMember(record);
+    }
+
+    public async Task<Member?> FindByFullNameAsync(string fullName, CancellationToken cancellationToken)    {
         if (string.IsNullOrWhiteSpace(fullName))
         {
             return null;

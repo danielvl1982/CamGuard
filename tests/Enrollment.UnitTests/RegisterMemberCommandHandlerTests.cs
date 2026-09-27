@@ -12,6 +12,13 @@ namespace Enrollment.UnitTests;
 /// </summary>
 public sealed class RegisterMemberCommandHandlerTests
 {
+    private static void SetupNoDuplicate(AutoMocker mocker)
+    {
+        mocker.GetMock<IMemberImageDuplicateValidator>()
+            .Setup(x => x.FindMatchAsync(It.IsAny<FaceEmbedding>(), It.IsAny<MemberId?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DuplicateFaceMatch?)null);
+    }
+
     private static float[] ValidVector()
     {
         var vector = new float[FaceEmbedding.ExpectedDimension];
@@ -27,6 +34,7 @@ public sealed class RegisterMemberCommandHandlerTests
         mocker.GetMock<IFaceEmbeddingExtractor>()
             .Setup(x => x.ExtractAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success<FaceEmbedding, FaceExtractionError>(embedding));
+        SetupNoDuplicate(mocker);
         var handler = mocker.CreateInstance<RegisterMemberCommandHandler>();
         var command = new RegisterMemberCommand("Ada Lovelace", [new MemoryStream()]);
 
@@ -44,13 +52,14 @@ public sealed class RegisterMemberCommandHandlerTests
         mocker.GetMock<IFaceEmbeddingExtractor>()
             .Setup(x => x.ExtractAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure<FaceEmbedding, FaceExtractionError>(FaceExtractionError.NoFaceDetected));
+        SetupNoDuplicate(mocker);
         var handler = mocker.CreateInstance<RegisterMemberCommandHandler>();
         var command = new RegisterMemberCommand("Ada Lovelace", [new MemoryStream()]);
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsFailure);
-        Assert.Equal(RegisterMemberError.NoFaceDetected, result.Error);
+        Assert.Equal(RegisterMemberError.NoFaceDetected, result.Error.Error);
         mocker.GetMock<IMemberVectorRepository>()
             .Verify(x => x.SaveAsync(It.IsAny<Member>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -62,13 +71,14 @@ public sealed class RegisterMemberCommandHandlerTests
         mocker.GetMock<IFaceEmbeddingExtractor>()
             .Setup(x => x.ExtractAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure<FaceEmbedding, FaceExtractionError>(FaceExtractionError.MultipleFacesDetected));
+        SetupNoDuplicate(mocker);
         var handler = mocker.CreateInstance<RegisterMemberCommandHandler>();
         var command = new RegisterMemberCommand("Ada Lovelace", [new MemoryStream()]);
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsFailure);
-        Assert.Equal(RegisterMemberError.MultipleFacesDetected, result.Error);
+        Assert.Equal(RegisterMemberError.MultipleFacesDetected, result.Error.Error);
         mocker.GetMock<IMemberVectorRepository>()
             .Verify(x => x.SaveAsync(It.IsAny<Member>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -81,13 +91,14 @@ public sealed class RegisterMemberCommandHandlerTests
         mocker.GetMock<IFaceEmbeddingExtractor>()
             .Setup(x => x.ExtractAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success<FaceEmbedding, FaceExtractionError>(embedding));
+        SetupNoDuplicate(mocker);
         var handler = mocker.CreateInstance<RegisterMemberCommandHandler>();
         var command = new RegisterMemberCommand("   ", [new MemoryStream()]);
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsFailure);
-        Assert.Equal(RegisterMemberError.InvalidMember, result.Error);
+        Assert.Equal(RegisterMemberError.InvalidMember, result.Error.Error);
         mocker.GetMock<IMemberVectorRepository>()
             .Verify(x => x.SaveAsync(It.IsAny<Member>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -120,6 +131,7 @@ public sealed class RegisterMemberCommandHandlerTests
             .ReturnsAsync(Result.Success<FaceEmbedding, FaceExtractionError>(secondEmbedding));
         extractorMock.Setup(x => x.ExtractAsync(thirdPhoto, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success<FaceEmbedding, FaceExtractionError>(thirdEmbedding));
+        SetupNoDuplicate(mocker);
         var handler = mocker.CreateInstance<RegisterMemberCommandHandler>();
         var command = new RegisterMemberCommand("Ada Lovelace", [firstPhoto, secondPhoto, thirdPhoto]);
 
@@ -151,13 +163,14 @@ public sealed class RegisterMemberCommandHandlerTests
             .ReturnsAsync(Result.Success<FaceEmbedding, FaceExtractionError>(validEmbedding));
         extractorMock.Setup(x => x.ExtractAsync(invalidPhoto, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure<FaceEmbedding, FaceExtractionError>(FaceExtractionError.NoFaceDetected));
+        SetupNoDuplicate(mocker);
         var handler = mocker.CreateInstance<RegisterMemberCommandHandler>();
         var command = new RegisterMemberCommand("Ada Lovelace", [firstPhoto, invalidPhoto]);
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsFailure);
-        Assert.Equal(RegisterMemberError.NoFaceDetected, result.Error);
+        Assert.Equal(RegisterMemberError.NoFaceDetected, result.Error.Error);
         mocker.GetMock<IMemberVectorRepository>()
             .Verify(x => x.SaveAsync(It.IsAny<Member>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -178,13 +191,14 @@ public sealed class RegisterMemberCommandHandlerTests
             .ReturnsAsync(Result.Success<FaceEmbedding, FaceExtractionError>(validEmbedding));
         extractorMock.Setup(x => x.ExtractAsync(invalidPhoto, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure<FaceEmbedding, FaceExtractionError>(FaceExtractionError.MultipleFacesDetected));
+        SetupNoDuplicate(mocker);
         var handler = mocker.CreateInstance<RegisterMemberCommandHandler>();
         var command = new RegisterMemberCommand("Ada Lovelace", [firstPhoto, invalidPhoto]);
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsFailure);
-        Assert.Equal(RegisterMemberError.MultipleFacesDetected, result.Error);
+        Assert.Equal(RegisterMemberError.MultipleFacesDetected, result.Error.Error);
         mocker.GetMock<IMemberVectorRepository>()
             .Verify(x => x.SaveAsync(It.IsAny<Member>(), It.IsAny<CancellationToken>()), Times.Never);
     }

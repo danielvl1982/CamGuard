@@ -42,9 +42,10 @@ public sealed record RegisterMemberCommand
 public sealed class RegisterMemberCommandHandler(
     IFaceEmbeddingExtractor faceEmbeddingExtractor,
     IMemberVectorRepository memberVectorRepository,
-    IMemberImageRepository memberImageRepository)
+    IMemberImageRepository memberImageRepository,
+    IMemberImageDuplicateValidator duplicateValidator)
 {
-    public async Task<Result<MemberId, RegisterMemberError>> HandleAsync(
+    public async Task<Result<MemberId, RegisterMemberFailure>> HandleAsync(
         RegisterMemberCommand command,
         CancellationToken cancellationToken)
     {
@@ -60,7 +61,7 @@ public sealed class RegisterMemberCommandHandler(
                 // rejects the whole enrollment immediately — no embedding is extracted
                 // from any remaining photo, and SaveAsync is never reached, so no vector
                 // record is persisted for any of the submitted photos.
-                return Result.Failure<MemberId, RegisterMemberError>(MapExtractionError(extraction.Error));
+                return Result.Failure<MemberId, RegisterMemberFailure>(MapExtractionError(extraction.Error));
             }
 
             embeddings.Add(extraction.Value);
@@ -76,7 +77,26 @@ public sealed class RegisterMemberCommandHandler(
         var enrollment = Member.Enroll(memberId, command.FullName, embeddings[0]);
         if (enrollment.IsFailure)
         {
-            return Result.Failure<MemberId, RegisterMemberError>(RegisterMemberError.InvalidMember);
+            return Result.Failure<MemberId, RegisterMemberFailure>(RegisterMemberError.InvalidMember);
+        }
+
+        // Duplicate-face gate (member-crud T3, OD2): every submitted photo's embedding
+        // is matched against ALL other members' stored images — including annulled
+        // members' images — BEFORE anything is persisted. The registering member does
+        // not exist yet, so nobody is excluded (ownerMemberId: null). On a match the
+        // whole registration fails and NOTHING is persisted (no images, no member).
+        foreach (var embedding in embeddings)
+        {
+            var match = await duplicateValidator.FindMatchAsync(embedding, ownerMemberId: null, cancellationToken)
+                .ConfigureAwait(false);
+            if (match is not null)
+            {
+                var matchedMember = await memberVectorRepository.FindByIdAsync(match.MatchedMemberId, cancellationToken)
+                    .ConfigureAwait(false);
+                var matchedName = matchedMember?.FullName ?? match.MatchedMemberId.Value.ToString();
+                return Result.Failure<MemberId, RegisterMemberFailure>(
+                    new RegisterMemberFailure(RegisterMemberError.MatchesOtherMember, matchedName));
+            }
         }
 
         // Persist only after every submitted photo passed the face-detection gate and the
@@ -114,12 +134,12 @@ public sealed class RegisterMemberCommandHandler(
                 }
             }
 
-            return Result.Failure<MemberId, RegisterMemberError>(RegisterMemberError.ImageStoreFailed);
+            return Result.Failure<MemberId, RegisterMemberFailure>(RegisterMemberError.ImageStoreFailed);
         }
 
         await memberVectorRepository.SaveAsync(enrollment.Value, cancellationToken);
 
-        return Result.Success<MemberId, RegisterMemberError>(memberId);
+        return Result.Success<MemberId, RegisterMemberFailure>(memberId);
     }
 
     private static RegisterMemberError MapExtractionError(FaceExtractionError error) => error switch
@@ -199,5 +219,24 @@ public enum RegisterMemberError
     ExtractionFailed,
     InvalidMember,
     InvalidName,
-    ImageStoreFailed
+    ImageStoreFailed,
+    /// <summary>
+    /// A submitted photo's face matches ANOTHER member's stored image (member-crud
+    /// T3, OD2 — annulled members' images participate). The matched member's display
+    /// name travels on <see cref="RegisterMemberFailure.MatchedMemberName"/> so the
+    /// UI can name them; nothing is persisted.
+    /// </summary>
+    MatchesOtherMember
+}
+
+/// <summary>
+/// Failure payload for <c>RegisterMemberCommandHandler</c>: the error kind plus,
+/// for <see cref="RegisterMemberError.MatchesOtherMember"/>, the matched member's
+/// display name (resolved via the member repository, annulled members included).
+/// Implicitly convertible from <see cref="RegisterMemberError"/> so gate failures
+/// without a payload stay one-liners.
+/// </summary>
+public sealed record RegisterMemberFailure(RegisterMemberError Error, string? MatchedMemberName = null)
+{
+    public static implicit operator RegisterMemberFailure(RegisterMemberError error) => new(error);
 }

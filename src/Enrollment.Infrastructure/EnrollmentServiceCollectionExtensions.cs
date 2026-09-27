@@ -6,6 +6,7 @@ using FaceAiSharp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Enrollment.Infrastructure;
 
@@ -55,6 +56,10 @@ public static class EnrollmentServiceCollectionExtensions
         services.TryAddScoped<IFaceEmbeddingExtractor, FaceAiSharpEmbeddingExtractor>();
         services.TryAddScoped<IMemberVectorRepository, SqliteVecMemberRepository>();
         services.TryAddScoped<IMemberImageRepository, SqliteVecMemberImageRepository>();
+        services.TryAddScoped<IMemberImageDuplicateValidator>(sp =>
+            new MemberImageDuplicateValidator(
+                sp.GetRequiredService<IMemberImageRepository>(),
+                sp.GetRequiredService<IOptions<VectorStoreOptions>>().Value.DuplicateFaceDistanceThreshold));
         services.TryAddScoped<RegisterMemberCommandHandler>();
         services.TryAddScoped<EnrollmentService>();
         services.TryAddScoped<QueryByEmbeddingQueryHandler>();

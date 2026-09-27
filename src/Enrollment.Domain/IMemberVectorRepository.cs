@@ -28,6 +28,14 @@ public interface IMemberVectorRepository
     Task<Member?> FindByFullNameAsync(string fullName, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Returns the member with the given id, or <c>null</c> when unknown. Unlike
+    /// <see cref="ListAllAsync"/>, annulled members ARE returned: the duplicate-face
+    /// gate (member-crud T3, OD2) matches against annulled members' images, so the
+    /// handler needs their display names to report the match.
+    /// </summary>
+    Task<Member?> FindByIdAsync(MemberId id, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Returns every <b>non-annulled</b> enrolled member in storage order (order is not
     /// guaranteed), or an empty list when none are enrolled.
     /// </summary>
