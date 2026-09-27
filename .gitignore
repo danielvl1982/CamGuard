@@ -24,3 +24,7 @@ npm-debug.log*
 # Local SQLite vector store (runtime data, never versioned)
 camguard-enrollment.db
 camguard-*.db-*
+
+# Stray runtime photo dir when the web app runs with the project dir as cwd
+# (real MemberImagesRoot is photos/members at the repo root)
+src/Enrollment.Web/photos/
