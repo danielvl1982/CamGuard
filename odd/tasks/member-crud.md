@@ -186,12 +186,22 @@ the user (session 2026-09-27).
   Verified: build 0 errors (10 pre-existing warnings); Enrollment 94/94, no new tests.
   Parent spot-check: build 0 errors.
 
-- [ ] **T5 — Member detail page + image endpoint**
+- [x] **T5 — Member detail page + image endpoint — DONE**
   `/members/{id}` route: identity block + image gallery (thumbnails) + empty state;
   minimal-API endpoint streaming image bytes from `photos/members/…` (files live outside
   `wwwroot`); navigation from the list. Interactive rendering for T6/T7 actions.
   *Acceptance:* build green; registered member shows all its images.
   *Route:* delegated (writer trigger: 3+ non-trivial files).
+  *Evidence:* 2026-09-27. 3 paths: `MemberDetail.razor` (`/members/{id:guid}`,
+  InteractiveServer, per-load scope via `IServiceScopeFactory`, `FindByIdAsync`
+  shows annulled with badge, `ListByMemberAsync` gallery, loading/empty/not-found/
+  error states, T6/T7 slot reserved), `MemberImageEndpoints.cs`
+  (`GET /api/members/{id}/images/{imageId}`, record-scoped + path-confinement
+  guards, jpg/png/webp content types), `Program.cs` (`MapMemberImageEndpoints`).
+  No CSS rebuild — all classes already in built CSS. Verified: build 0 errors;
+  Enrollment 94/94. Parent spot-check: build 0 errors + tests 94/94.
+  *Fix on close:* added missing `.webp` content type (T2 stores webp via magic-byte
+  sniff); removed stray runtime `src/Enrollment.Web/photos/` artifact.
 
 - [ ] **T6 — Total image delete**
   Backend delete path (record + file, both or nothing) + per-image "Delete" action on
@@ -264,3 +274,10 @@ the user (session 2026-09-27).
   spot-check MemberDuplicateFace 8/8). RDD assess: medium, `slice_budget_reached`
   (cumulative 1874 lines) → **"Skip this time" (3rd)** → `declined_this_candidate`.
   Boundary stays at `1bd2117`.
+- 2026-09-27 — T4 landed as `ca0bc05` (2 files, Members.razor interactive + evidence).
+  RDD assess: medium, `slice_budget_reached` (cumulative 2024 lines) → **"Skip this
+  time" (4th)** → `declined_this_candidate`. Boundary stays at `1bd2117`.
+- 2026-09-27 — T5 landed (MemberDetail.razor + MemberImageEndpoints.cs + Program.cs
+  wiring, webp fix on close). Prior two T5 attempts left the same 3 paths uncommitted
+  in the worktree (build was already green); closed inline with verification
+  (build 0 errors, Enrollment 94/94, CSS check, stray photos/ removed).
