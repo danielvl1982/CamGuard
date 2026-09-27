@@ -218,13 +218,23 @@ the user (session 2026-09-27).
   refresh via `ListByMemberAsync`. No CSS rebuild — classes verified in built CSS.
   Verified: build 0 errors; Enrollment 94/94. Parent spot-check: build 0 errors.
 
-- [ ] **T7 — Add images from the detail page**
+- [x] **T7 — Add images from the detail page — DONE**
   `InputFile` on `/members/{id}` → new application command (extraction + T3 validator +
   T2 store) → gallery refresh. Inline mapping of every error (gate failures, duplicate
   face with matched member's name, store failure); form state preserved on failure.
   *Acceptance:* build green; smoke: add valid image appears; add face of ANOTHER member
   → named inline error, nothing persisted.
   *Route:* delegated (writer trigger: 2+ non-trivial files).
+  *Evidence:* 2026-09-27. 3 paths: new `AddMemberImagesCommand` (+handler,
+  `AddMemberImagesError`/`Failure`, extract-all → gate-all with owner = displayed
+  member → store-all, all-or-nothing with mid-batch compensation, streams copied
+  never disposed, magic-byte sniff incl. gif/bmp + `.bin` fallback), DI registration
+  (scoped), `MemberDetail.razor` (+283/-2, multi-InputFile form with previews,
+  `isAdding` guard, inline English errors incl. named duplicate-face, state preserved
+  on failure). No CSS rebuild — classes verified in built CSS. Verified: build
+  0 errors; Enrollment 94/94. Parent spot-check: build 0 errors, tests 94/94,
+  new-file boundary readback (no ASP.NET/preview-package refs in Application).
+  *Fix on close:* `ContentTypeFor` extended with gif/bmp (T7 sniff can store them).
 
 - [ ] **T8 — Full verification & closure**
   `dotnet build` + full `dotnet test`, manual end-to-end smoke (annul → detail →
@@ -291,3 +301,6 @@ the user (session 2026-09-27).
 - 2026-09-27 — T6 landed (MemberDetail.razor +118/-2, delete confirm + scoping guard,
   reuses T2 DeleteAsync). Verified: build 0 errors, Enrollment 94/94.
   Parent spot-check: build 0 errors + diff readback.
+- 2026-09-27 — T7 landed (new AddMemberImagesCommand + DI + MemberDetail form,
+  all-or-nothing with owner-scoped T3 gate). Verified: build 0 errors,
+  Enrollment 94/94. Parent spot-check: build + tests + boundary readback.

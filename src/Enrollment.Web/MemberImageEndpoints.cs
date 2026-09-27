@@ -75,6 +75,8 @@ public static class MemberImageEndpoints
             ".jpg" or ".jpeg" => "image/jpeg",
             ".png" => "image/png",
             ".webp" => "image/webp",
+            ".gif" => "image/gif",
+            ".bmp" => "image/bmp",
             _ => "application/octet-stream",
         };
 }

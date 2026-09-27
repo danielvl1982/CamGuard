@@ -1,6 +1,7 @@
 @page "/members/{id:guid}"
 @rendermode InteractiveServer
 
+@using Enrollment.Application
 @using Enrollment.Domain
 @inject IServiceScopeFactory ScopeFactory
 @inject ILogger<MemberDetail> Logger
@@ -115,8 +116,79 @@
                     }
                 </ul>
             }
-            @* T7 (add images) action slots in below this line — gallery list
-               and identity block above stay untouched. *@
+            @* T7 add-images form: lives inside the same card so no new
+               layout utility classes are needed (all classes below already
+               appear in Register.razor / this page — no Tailwind rebuild). *@
+            <h3 class="mb-1 mt-3 text-xl font-semibold text-text">Add images</h3>
+            <p class="mb-2 text-sm text-text-muted">
+                Add one or more photos. Every photo must contain exactly one clearly visible face.
+            </p>
+            <InputFile id="addPhotos"
+                       multiple
+                       accept="image/*"
+                       OnChange="OnAddFilesChangedAsync"
+                       disabled="@(isAdding || isDeleting ? "disabled" : null)" />
+            @if (addPhotoError is not null)
+            {
+                <p class="validation-message mt-1 text-sm" role="alert">@addPhotoError</p>
+            }
+            @if (addSelectionError is not null)
+            {
+                <p class="validation-message mt-1 text-sm" role="alert">@addSelectionError</p>
+            }
+            @if (selectedPhotos.Count > 0)
+            {
+                <ul class="mt-3 grid gap-3 sm:grid-cols-2" role="list">
+                    @foreach (var photo in selectedPhotos)
+                    {
+                        <li @key="photo.Id" class="flex items-center gap-3 rounded border border-border bg-elevated p-3">
+                            <div class="h-16 w-16 shrink-0 overflow-hidden rounded border border-border bg-surface">
+                                @if (photo.PreviewDataUrl is not null)
+                                {
+                                    <img src="@photo.PreviewDataUrl" alt="Preview of @photo.File.Name" class="h-full w-full object-cover" />
+                                }
+                                else
+                                {
+                                    <span class="flex h-full w-full items-center justify-center text-sm text-text-muted">No preview</span>
+                                }
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm text-text">@photo.File.Name</p>
+                                <p class="text-sm text-text-muted">@FormatSize(photo.File.Size)</p>
+                            </div>
+                            <button type="button"
+                                    class="shrink-0 rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                    disabled="@(isAdding ? "disabled" : null)"
+                                    @onclick="() => RemoveSelectedPhoto(photo)">
+                                Remove
+                            </button>
+                        </li>
+                    }
+                </ul>
+            }
+            <div class="mt-3 flex flex-wrap items-center gap-4">
+                <button type="button"
+                        class="rounded bg-accent px-4 py-2 font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50"
+                        disabled="@(isAdding ? "disabled" : null)"
+                        @onclick="SubmitAddAsync">
+                    @(isAdding ? "Adding…" : "Add images")
+                </button>
+                @if (isAdding)
+                {
+                    <span class="text-sm text-text-muted" role="status">Checking photos — face extraction can take a moment.</span>
+                }
+            </div>
+            @if (addNotice is not null)
+            {
+                @if (addNoticeIsError)
+                {
+                    <p class="validation-message mt-1 text-sm" role="alert">@addNotice</p>
+                }
+                else
+                {
+                    <p class="mt-1 text-sm text-text" role="status">@addNotice</p>
+                }
+            }
         </div>
     }
 </div>
@@ -124,6 +196,11 @@
 @code {
     [Parameter]
     public Guid Id { get; set; }
+
+    /// <summary>Upper bound per photo; matches the cap enforced by <see cref="IBrowserFile.OpenReadStream(long, CancellationToken)"/> (Register.razor precedent).</summary>
+    private const long MaxPhotoBytes = 50 * 1024 * 1024;
+
+    private const int PreviewMaxDimension = 160;
 
     private Member? member;
     private IReadOnlyList<MemberImage>? images;
@@ -134,6 +211,12 @@
     private bool isDeleting;
     private string? deleteNotice;
     private bool deleteNoticeIsError;
+    private readonly List<PhotoEntry> selectedPhotos = [];
+    private string? addPhotoError;
+    private string? addSelectionError;
+    private string? addNotice;
+    private bool addNoticeIsError;
+    private bool isAdding;
 
     protected override async Task OnParametersSetAsync() => await LoadAsync();
 
@@ -248,5 +331,201 @@
         {
             isDeleting = false;
         }
+    }
+
+    private async Task OnAddFilesChangedAsync(InputFileChangeEventArgs e)
+    {
+        // The form controls are disabled while a submission is running, but guard
+        // anyway so the photo list cannot mutate under an in-flight addition.
+        if (isAdding || e.FileCount == 0)
+        {
+            return;
+        }
+
+        addPhotoError = null;
+        addSelectionError = null;
+
+        var added = new List<PhotoEntry>();
+        var rejected = new List<string>();
+        foreach (var file in e.GetMultipleFiles(int.MaxValue))
+        {
+            if (file.Size > MaxPhotoBytes)
+            {
+                rejected.Add(file.Name);
+                continue;
+            }
+
+            var entry = new PhotoEntry(file);
+            selectedPhotos.Add(entry);
+            added.Add(entry);
+        }
+
+        if (rejected.Count > 0)
+        {
+            addSelectionError =
+                $"These files exceed the {FormatSize(MaxPhotoBytes)} limit and were not added: {string.Join(", ", rejected)}.";
+        }
+
+        foreach (var entry in added)
+        {
+            await LoadPreviewAsync(entry);
+        }
+    }
+
+    private async Task LoadPreviewAsync(PhotoEntry entry)
+    {
+        try
+        {
+            var format = PreviewFormat(entry.File.Name);
+            var resized = await entry.File.RequestImageFileAsync(format, PreviewMaxDimension, PreviewMaxDimension);
+            await using var stream = resized.OpenReadStream(MaxPhotoBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            var contentType = string.IsNullOrWhiteSpace(resized.ContentType) ? format : resized.ContentType;
+            entry.PreviewDataUrl = $"data:{contentType};base64,{Convert.ToBase64String(buffer.ToArray())}";
+        }
+        catch (Exception ex)
+        {
+            // Preview is best-effort: a placeholder is rendered instead when the
+            // browser cannot decode/resize the file.
+            Logger.LogWarning(ex, "Preview generation failed for {FileName}.", entry.File.Name);
+            entry.PreviewDataUrl = null;
+        }
+    }
+
+    private void RemoveSelectedPhoto(PhotoEntry photo)
+    {
+        if (isAdding)
+        {
+            return;
+        }
+
+        selectedPhotos.Remove(photo);
+        if (selectedPhotos.Count > 0)
+        {
+            addPhotoError = null;
+        }
+    }
+
+    private async Task SubmitAddAsync()
+    {
+        // Face extraction is slow; re-entry would double-submit the addition.
+        if (isAdding || member is null)
+        {
+            return;
+        }
+
+        addPhotoError = selectedPhotos.Count == 0 ? "Add at least one photo." : null;
+        if (addPhotoError is not null)
+        {
+            return; // Validation failures never clear the form.
+        }
+
+        isAdding = true;
+        addNotice = null;
+        var memberId = member.Id;
+        var photoCount = selectedPhotos.Count;
+        var streams = new List<Stream>(photoCount);
+        try
+        {
+            foreach (var photo in selectedPhotos)
+            {
+                // Buffer each upload into memory before the application layer sees it.
+                // Two reasons: Blazor's BrowserFileStream rejects synchronous reads
+                // (the extractor's Image.Load reads synchronously), and a circuit-bound
+                // stream must not stay open across the slow face-extraction call.
+                // Register.razor precedent.
+                await using var source = photo.File.OpenReadStream(MaxPhotoBytes);
+                var buffer = new MemoryStream();
+                await source.CopyToAsync(buffer);
+                buffer.Position = 0;
+                streams.Add(buffer);
+            }
+
+            // One short scope per submit (Register/Members precedent): resolving the
+            // handler from the circuit's own scope would pin its scoped dependencies
+            // for the whole circuit lifetime.
+            using var scope = ScopeFactory.CreateScope();
+            var handler = scope.ServiceProvider.GetRequiredService<AddMemberImagesCommandHandler>();
+            var imageStore = scope.ServiceProvider.GetRequiredService<IMemberImageRepository>();
+            var command = new AddMemberImagesCommand(memberId, streams);
+            var result = await handler.HandleAsync(command, CancellationToken.None);
+
+            if (result.IsFailure)
+            {
+                // Keep every piece of form state; only the inline message changes.
+                addNotice = MapAddError(result.Error);
+                addNoticeIsError = true;
+                return;
+            }
+
+            selectedPhotos.Clear();
+            addPhotoError = null;
+            addSelectionError = null;
+            images = await imageStore.ListByMemberAsync(memberId, CancellationToken.None);
+            addNotice = photoCount == 1 ? "Image added." : $"{photoCount} images added.";
+            addNoticeIsError = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Member image addition submission failed for member {MemberId}.", memberId);
+            addNotice = $"An unexpected error occurred: {ex.Message}";
+            addNoticeIsError = true;
+        }
+        finally
+        {
+            foreach (var stream in streams)
+            {
+                try
+                {
+                    await stream.DisposeAsync();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to dispose a photo stream after image addition.");
+                }
+            }
+
+            isAdding = false;
+        }
+    }
+
+    /// <summary>Every <see cref="AddMemberImagesError"/> maps to a specific inline message.</summary>
+    private static string MapAddError(AddMemberImagesFailure failure) => failure.Error switch
+    {
+        AddMemberImagesError.NoFaceDetected =>
+            "No face was detected in at least one photo. Use a clear photo that shows a single face.",
+        AddMemberImagesError.MultipleFacesDetected =>
+            "More than one face was detected in at least one photo. Use photos that show only one person.",
+        AddMemberImagesError.ExtractionFailed =>
+            "At least one photo could not be processed. Try a different photo.",
+        AddMemberImagesError.ImageStoreFailed =>
+            "The images could not be stored. Please try again.",
+        AddMemberImagesError.MemberNotFound =>
+            "That member was not found. It may have been removed.",
+        AddMemberImagesError.MatchesOtherMember when !string.IsNullOrWhiteSpace(failure.MatchedMemberName) =>
+            $"This face appears to already be registered to {failure.MatchedMemberName}. Use a photo of this member.",
+        AddMemberImagesError.MatchesOtherMember =>
+            "This face appears to already be registered to another member. Use a photo of this member.",
+        _ => "Could not add the images. Please try again."
+    };
+
+    private static string PreviewFormat(string fileName) =>
+        Path.GetExtension(fileName).Equals(".png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg";
+
+    private static string FormatSize(long bytes) => bytes switch
+    {
+        >= 1_048_576 => $"{bytes / 1_048_576.0:0.#} MB",
+        >= 1_024 => $"{bytes / 1_024.0:0.#} KB",
+        _ => $"{bytes} B"
+    };
+
+    private sealed class PhotoEntry(IBrowserFile file)
+    {
+        public Guid Id { get; } = Guid.NewGuid();
+
+        public IBrowserFile File { get; } = file;
+
+        public string? PreviewDataUrl { get; set; }
     }
 }
