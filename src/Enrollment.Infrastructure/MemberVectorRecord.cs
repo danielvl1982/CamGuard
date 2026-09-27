@@ -20,6 +20,15 @@ internal sealed class MemberVectorRecord
     public required string FullName { get; init; }
 
     /// <summary>
+    /// Soft-delete flag ("anulado", member-crud T1). Stored as INTEGER 0/1 by the
+    /// SqliteVec provider. Pre-annulment rows lack this column entirely and are
+    /// backfilled to 0 (non-annulled) by the repository's ALTER TABLE migration —
+    /// see <c>SqliteVecMemberRepository</c> for the probe findings.
+    /// </summary>
+    [VectorStoreData]
+    public required bool IsAnnulled { get; init; }
+
+    /// <summary>
     /// Cosine distance (0 = identical, 2 = opposite) — the standard comparison convention for
     /// ArcFace-family embeddings. Resolves design.md's open "distance/similarity metric"
     /// question for this phase.

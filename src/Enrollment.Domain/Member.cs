@@ -8,24 +8,38 @@ namespace Enrollment.Domain;
 /// </summary>
 public sealed class Member : EntityBase<MemberId>
 {
-    private Member(MemberId id, string fullName, FaceEmbedding embedding)
+    private Member(MemberId id, string fullName, FaceEmbedding embedding, bool isAnnulled)
     {
         Id = id;
         FullName = fullName;
         Embedding = embedding;
+        IsAnnulled = isAnnulled;
     }
 
     public string FullName { get; }
 
     public FaceEmbedding Embedding { get; }
 
-    /// <summary>Reconstitutes a member from persistence without raising domain events.</summary>
-    public static Member Rehydrate(MemberId id, string fullName, FaceEmbedding embedding)
+    /// <summary>
+    /// Soft-delete flag ("anulado", member-crud T1): annulled members are hidden from
+    /// the directory list and excluded from recognition (OD1).
+    /// </summary>
+    public bool IsAnnulled { get; private set; }
+
+    /// <summary>Soft-deletes the member. Idempotent — re-annulling changes nothing.</summary>
+    public void Annul() => IsAnnulled = true;
+
+    /// <summary>
+    /// Reconstitutes a member from persistence without raising domain events.
+    /// <paramref name="isAnnulled"/> defaults to <c>false</c> so callers reading
+    /// pre-annulment rows (no persisted flag) rehydrate as non-annulled.
+    /// </summary>
+    public static Member Rehydrate(MemberId id, string fullName, FaceEmbedding embedding, bool isAnnulled = false)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(embedding);
         ArgumentException.ThrowIfNullOrWhiteSpace(fullName);
-        return new Member(id, fullName, embedding);
+        return new Member(id, fullName, embedding, isAnnulled);
     }
 
     /// <summary>
@@ -42,7 +56,7 @@ public sealed class Member : EntityBase<MemberId>
             return Result.Failure<Member, MemberError>(MemberError.EmptyFullName);
         }
 
-        var member = new Member(id, fullName, embedding);
+        var member = new Member(id, fullName, embedding, isAnnulled: false);
         member.Raise(new MemberEnrolled(id));
 
         return Result.Success<Member, MemberError>(member);

@@ -83,9 +83,9 @@ the user (session 2026-09-27).
 
 ## Tasks
 
-- [ ] **T1 — Soft delete (domain + persistence)**
+- [x] **T1 — Soft delete (domain + persistence) — DONE**
   Annul flag on `Member` (new state + `Annul()`, `Rehydrate` signature), on
-  `  MemberVectorRecord` + `MemberVectorRecordMapper`, repository annul/upsert method,
+  `MemberVectorRecord` + `MemberVectorRecordMapper`, repository annul/upsert method,
   annulled excluded from the list query (`ListAllAsync` semantics or new method) **and
   from recognition** (per OD1: `FindNearestAsync` must not return annulled members —
   filter in the repository adapter so monitoring can never grant them access).
@@ -93,9 +93,25 @@ the user (session 2026-09-27).
   EXISTING SqliteVec table (preview package), or is raw `ALTER TABLE` via
   Microsoft.Data.Sqlite needed (precedent: T2 probe of the prior feature)?
   Unit tests: annul round-trip, list excludes annulled, recognition excludes annulled,
-  legacy rows default to not annulled.
+  legacy rows default to non-annulled.
   *Acceptance:* `dotnet test` green incl. new tests; existing DB keeps loading.
   *Route:* delegated (writer trigger: 5+ non-trivial files).
+  *Evidence:* 2026-09-27. 6 paths: `Member.cs` (`IsAnnulled` + idempotent `Annul()`,
+  `Rehydrate(..., isAnnulled: false)`), `IMemberVectorRepository` (new
+  `SetAnnulledAsync`, `KeyNotFoundException` on unknown id), `MemberVectorRecord`
+  (`[VectorStoreData] bool IsAnnulled`), mapper (both ways), `SqliteVecMemberRepository`
+  (`EnsureSchemaAsync` on every touch; `FindNearestAsync` top-10 → first non-annulled;
+  `ListAllAsync` skips annulled; `FindByFullNameAsync` unchanged), new
+  `tests/Enrollment.UnitTests/MemberAnnulTests.cs` (9 tests incl. annulled-top-1 skip,
+  all-annulled → null, legacy column-less rows read non-annulled).
+  **Probe finding:** `EnsureCollectionExistsAsync` is CREATE TABLE IF NOT EXISTS —
+  does NOT add columns; raw `ALTER TABLE … ADD COLUMN IsAnnulled INTEGER NOT NULL
+  DEFAULT 0` via `Microsoft.Data.Sqlite` (already referenced, no new packages),
+  guarded by `pragma_table_info('t')` (single quotes — double quotes fail) + race catch.
+  Verified: build 0 errors (8 pre-existing warnings); `dotnet test` 140/140 green
+  (Enrollment 77 = 68 + 9 new; Monitoring 63). Parent spot-check: MemberAnnul 9/9.
+  *Risks carried:* top-K=10 depth (fail-safe deny beyond 10 nearer annulled);
+  read-modify-write last-write-wins on concurrent annul/restore (single-admin UI, OK).
 
 - [ ] **T2 — Image persistence port + register wiring**
   `IMemberImageRepository` (domain port): `SaveAsync(memberId, stream/embedding) →
