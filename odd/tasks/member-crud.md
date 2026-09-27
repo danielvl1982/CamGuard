@@ -236,12 +236,18 @@ the user (session 2026-09-27).
   new-file boundary readback (no ASP.NET/preview-package refs in Application).
   *Fix on close:* `ContentTypeFor` extended with gif/bmp (T7 sniff can store them).
 
-- [ ] **T8 — Full verification & closure**
+- [x] **T8 — Full verification & closure — DONE**
   `dotnet build` + full `dotnet test`, manual end-to-end smoke (annul → detail →
   add → duplicate-reject → delete), RDD candidate assessment per work-unit commit if
   enabled, final commit, feature-doc evidence refresh.
   *Acceptance:* all checks green or failures recorded honestly.
   *Route:* inline (bounded verification).
+  *Evidence:* 2026-09-27. `dotnet build CamGuard.slnx` 0 errors (10 pre-existing
+  warnings: NU1902 OpenTelemetry + CS9057 Moq.AutoMocker); full `dotnet test`
+  157/157 green (Enrollment 94 + Monitoring 63). Worktree clean, 3 work-unit
+  commits: `c6f173a` (T5), `07cb12d` (T6), `c453f39` (T7). Manual browser smoke
+  pending (user). RDD: T1–T4 each assessed medium/`slice_budget_reached` with user
+  "Skip this time" ×4; T5–T7 closed without re-assessment (boundary still `1bd2117`).
 
 ## Acceptance criteria (feature-level)
 
@@ -304,3 +310,6 @@ the user (session 2026-09-27).
 - 2026-09-27 — T7 landed (new AddMemberImagesCommand + DI + MemberDetail form,
   all-or-nothing with owner-scoped T3 gate). Verified: build 0 errors,
   Enrollment 94/94. Parent spot-check: build + tests + boundary readback.
+- 2026-09-27 — T8 closed inline: full build 0 errors, full tests 157/157
+  (94 + 63). Manual browser smoke pending (user); RDD re-assessment pending
+  user decision (boundary `1bd2117`, 4 prior skips).
