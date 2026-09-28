@@ -103,8 +103,11 @@ record. The user asked for an incident list as the next task (session 2026-09-27
   *Route:* direct inline (delegation transport unavailable; 1 new page + 1
   mechanical nav edit). *Evidence:* `Incidents.razor`, `MainLayout.razor`,
   `wwwroot/app.css`; smoke 200 on :5203.
-- [ ] **T5 — Verification & closure** — build + full tests + smoke, final
-  commit(s), evidence refresh. *Route:* inline.
+- [ ] **T5 — Verification & closure** — DONE 2026-09-28: build 0 errors,
+  full tests 174/174 (Enrollment 104 + Monitoring 70), smoke `/incidents` 200
+  on :5203 (server stopped after, port free). Feature complete on
+  `feat/incident-log` (T1 scope + T2 persistence + T3 hook + T4 UI).
+  Merge + push ONLY on user order. *Route:* inline.
 
 ## Acceptance criteria (feature-level)
 
