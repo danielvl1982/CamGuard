@@ -1,7 +1,23 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>CamGuard — Face enrollment for access control</PageTitle>
 
-<h1>Hello, world!</h1>
+<section class="max-w-2xl">
+    <h1 class="text-3xl font-bold tracking-tight text-text">Secure access with face enrollment</h1>
+    <p class="mt-2 text-lg text-text-muted">Enroll faces once and recognize them at the door — CamGuard handles access control.</p>
+    <div class="mt-6 flex flex-wrap gap-3">
+        <a href="/register" class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-hover">Enroll a face</a>
+        <a href="/members" class="rounded-lg border border-border bg-elevated px-4 py-2 text-sm font-semibold text-text transition-colors hover:border-border-strong">View members</a>
+    </div>
+</section>
 
-Welcome to your new app.
+<section class="mt-8 grid gap-4 sm:grid-cols-2" aria-label="Get started">
+    <a href="/register" class="block rounded-lg border border-border bg-elevated p-6 transition-colors hover:border-border-strong">
+        <h2 class="text-lg font-semibold text-text">Register</h2>
+        <p class="mt-2 text-sm text-text-muted">Capture a photo and enroll a new member in seconds.</p>
+    </a>
+    <a href="/members" class="block rounded-lg border border-border bg-elevated p-6 transition-colors hover:border-border-strong">
+        <h2 class="text-lg font-semibold text-text">Members</h2>
+        <p class="mt-2 text-sm text-text-muted">Browse and manage the enrolled members.</p>
+    </a>
+</section>

@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Common\Common.csproj" />
+    <ProjectReference Include="..\..\src\Enrollment.Domain\Enrollment.Domain.csproj" />
     <ProjectReference Include="..\..\src\Monitoring.Domain\Monitoring.Domain.csproj" />
     <ProjectReference Include="..\..\src\Monitoring.Application\Monitoring.Application.csproj" />
     <ProjectReference Include="..\..\src\Monitoring.Infrastructure\Monitoring.Infrastructure.csproj" />

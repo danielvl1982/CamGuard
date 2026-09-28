@@ -5,16 +5,27 @@
    comes from contrast alone, not from color hue. *@
 <div class="flex min-h-screen flex-col bg-base text-text">
     <header class="border-b border-border bg-surface">
-        <div class="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
-            <a href="/" class="text-lg font-semibold tracking-wide text-text">CamGuard Enrollment</a>
+        <div class="mx-auto flex w-full max-w-6xl items-center px-4 py-3">
+            <a href="/" class="flex items-center gap-3 rounded" aria-label="CamGuard home">
+                <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true" class="shrink-0 text-text">
+                    <path d="M16 2.5 27.5 7v8.5c0 6.8-4.8 11.8-11.5 14C9.3 27.3 4.5 22.3 4.5 15.5V7L16 2.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                    <circle cx="16" cy="15" r="5" stroke="currentColor" stroke-width="2" class="text-accent" />
+                    <circle cx="16" cy="15" r="1.6" fill="currentColor" class="text-accent" />
+                </svg>
+                <span class="leading-tight">
+                    <span class="block text-lg font-semibold tracking-wide text-text">CamGuard</span>
+                    <span class="block text-sm text-text-muted">Face enrollment for access control</span>
+                </span>
+            </a>
         </div>
     </header>
 
     <nav class="border-b border-border bg-elevated" aria-label="Primary">
         <div class="mx-auto flex w-full max-w-6xl gap-1 px-4 py-2">
-            <a href="/" class="rounded px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text">Home</a>
-            <a href="/register" class="rounded px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text">Register</a>
-            <a href="/members" class="rounded px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text">Members</a>
+            <NavLink href="/" Match="NavLinkMatch.All" class="rounded px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text" ActiveClass="bg-surface text-text">Home</NavLink>
+            <NavLink href="/register" class="rounded px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text" ActiveClass="bg-surface text-text">Register</NavLink>
+            <NavLink href="/members" class="rounded px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text" ActiveClass="bg-surface text-text">Members</NavLink>
+            <NavLink href="/incidents" class="rounded px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text" ActiveClass="bg-surface text-text">Incidents</NavLink>
         </div>
     </nav>
 
@@ -26,7 +37,8 @@
 
     <footer class="border-t border-border bg-surface">
         <div class="mx-auto w-full max-w-6xl px-4 py-4 text-sm text-text-muted">
-            CamGuard Enrollment portal.
+            <p>&copy; @DateTime.Now.Year CamGuard. All rights reserved.</p>
+            <p class="mt-1">Face enrollment and recognition for access control.</p>
         </div>
     </footer>
 </div>

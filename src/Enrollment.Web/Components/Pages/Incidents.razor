@@ -1,0 +1,174 @@
+@page "/incidents"
+@rendermode InteractiveServer
+
+@using Enrollment.Domain
+@inject IServiceScopeFactory ScopeFactory
+@inject ILogger<Incidents> Logger
+
+@* InteractiveServer: the manual report form needs event handlers. Scoped
+   IIncidentRepository is never injected into the circuit (Members.razor
+   precedent) — one short scope is created per load/submit action instead. *@
+<PageTitle>Incidents</PageTitle>
+
+<div class="mx-auto w-full max-w-3xl">
+    <h1 class="mb-6 text-xl font-semibold text-text">Incidents</h1>
+
+    <section aria-label="Report an incident" class="mb-6 rounded-lg border border-border bg-surface p-4">
+        <h2 class="mb-3 text-sm font-semibold text-text">Report an incident</h2>
+        <div class="flex flex-col gap-3">
+            <label class="text-sm text-text">
+                Kind
+                <select @bind="newKind" class="mt-1 block w-full rounded border border-border bg-base px-3 py-2 text-sm text-text" disabled="@(isSubmitting ? "disabled" : null)">
+                    @foreach (var kind in Enum.GetValues<IncidentKind>())
+                    {
+                        <option value="@kind">@kind</option>
+                    }
+                </select>
+            </label>
+            <label class="text-sm text-text">
+                Note
+                <textarea @bind="newNote" rows="2" placeholder="What happened?" class="mt-1 block w-full rounded border border-border bg-base px-3 py-2 text-sm text-text" disabled="@(isSubmitting ? "disabled" : null)"></textarea>
+            </label>
+            <div>
+                <button type="button"
+                        class="rounded bg-accent px-4 py-2 font-semibold text-accent-contrast transition-colors hover:bg-accent-hover"
+                        disabled="@(isSubmitting ? "disabled" : null)"
+                        @onclick="SubmitAsync">
+                    @(isSubmitting ? "Recording…" : "Record incident")
+                </button>
+            </div>
+        </div>
+    </section>
+
+    @if (notice is not null)
+    {
+        @if (noticeIsError)
+        {
+            <p class="validation-message text-sm" role="alert">@notice</p>
+        }
+        else
+        {
+            <div class="mb-6 rounded-lg border border-border bg-surface p-4" role="status">
+                <p class="text-sm text-text">@notice</p>
+            </div>
+        }
+    }
+
+    @if (isLoading)
+    {
+        <p class="text-sm text-text-muted" role="status">Loading incidents…</p>
+    }
+    else if (loadError is not null)
+    {
+        <p class="validation-message text-sm" role="alert">@loadError</p>
+    }
+    else if (incidents is { Count: 0 })
+    {
+        <div class="rounded-lg border border-border bg-surface p-6 text-center" role="status">
+            <p class="text-text-muted">No incidents recorded yet.</p>
+        </div>
+    }
+    else if (incidents is not null)
+    {
+        <div class="rounded-lg border border-border bg-surface">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-elevated text-left">
+                        <th scope="col" class="px-4 py-3 font-semibold text-text">Date / time (UTC)</th>
+                        <th scope="col" class="px-4 py-3 font-semibold text-text">Kind</th>
+                        <th scope="col" class="px-4 py-3 font-semibold text-text">Note</th>
+                        <th scope="col" class="px-4 py-3 font-semibold text-text">Member</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var incident in incidents)
+                    {
+                        <tr @key="incident.Id" class="border-t border-border">
+                            <td class="px-4 py-3 text-text-muted"><code>@incident.OccurredAtUtc.ToString("u")</code></td>
+                            <td class="px-4 py-3 text-text"><span class="rounded border border-border px-2 py-1 text-sm">@incident.Kind</span></td>
+                            <td class="px-4 py-3 text-text">@(incident.Note ?? incident.SnapshotImagePath ?? "—")</td>
+                            <td class="px-4 py-3 text-text">
+                                @if (incident.MemberId is not null)
+                                {
+                                    <a href="@($"/members/{incident.MemberId}")"><code>@incident.MemberId</code></a>
+                                }
+                                else
+                                {
+                                    <span class="text-text-muted">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private const int ListLimit = 100;
+
+    private IReadOnlyList<Incident>? incidents;
+    private string? loadError;
+    private bool isLoading = true;
+    private IncidentKind newKind = IncidentKind.ManualNote;
+    private string? newNote;
+    private bool isSubmitting;
+    private string? notice;
+    private bool noticeIsError;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var repository = scope.ServiceProvider.GetRequiredService<IIncidentRepository>();
+            incidents = await repository.ListRecentAsync(ListLimit, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            // Render an inline message instead of letting the failure take down the page.
+            Logger.LogError(ex, "Failed to load the incident list.");
+            loadError = "The incident list could not be loaded. Refresh the page to try again.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (isSubmitting)
+        {
+            return;
+        }
+
+        isSubmitting = true;
+        notice = null;
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var repository = scope.ServiceProvider.GetRequiredService<IIncidentRepository>();
+            var incident = Incident.Create(IncidentId.New(), DateTime.UtcNow, newKind, null, newNote, null);
+            await repository.SaveAsync(incident, CancellationToken.None);
+            newNote = null;
+            newKind = IncidentKind.ManualNote;
+            await LoadAsync();
+            notice = "Incident recorded.";
+            noticeIsError = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to record a manual incident.");
+            notice = "Could not record the incident. Please try again.";
+            noticeIsError = true;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}

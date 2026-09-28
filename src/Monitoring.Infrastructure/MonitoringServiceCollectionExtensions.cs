@@ -104,6 +104,8 @@ public static class MonitoringServiceCollectionExtensions
         services.TryAddScoped<DetectPersonExecutor>();
         services.TryAddScoped<VerifyIdentityExecutor>();
         services.TryAddScoped<DecideAccessExecutor>();
+        // incident-log T3: automatic capture hook (failure-isolated inside NotifyExecutor).
+        services.TryAddScoped<IIncidentSink, IncidentSinkAdapter>();
         services.TryAddScoped<NotifyExecutor>();
         services.TryAddScoped<MonitoringWorkflowHost>();
 

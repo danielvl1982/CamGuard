@@ -1,4 +1,5 @@
 using Enrollment.Application;
+using Enrollment.Domain;
 using Enrollment.Infrastructure;
 using Enrollment.PublicApi;
 using Microsoft.Extensions.Configuration;
@@ -34,10 +35,12 @@ public sealed class EnrollmentServiceCollectionExtensionsTests
             var reader = scope.ServiceProvider.GetRequiredService<IMemberDirectoryReader>();
             var registerHandler = scope.ServiceProvider.GetRequiredService<RegisterMemberCommandHandler>();
             var queryHandler = scope.ServiceProvider.GetRequiredService<QueryByEmbeddingQueryHandler>();
+            var incidentRepository = scope.ServiceProvider.GetRequiredService<IIncidentRepository>();
 
             Assert.NotNull(reader);
             Assert.NotNull(registerHandler);
             Assert.NotNull(queryHandler);
+            Assert.NotNull(incidentRepository);
         }
         finally
         {

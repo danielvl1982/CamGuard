@@ -78,6 +78,7 @@ public sealed class DetectPersonExecutorTests
         var notify = new NotifyExecutor(
             notificationServiceMock.Object,
             pendingVerificationRepositoryMock.Object,
+            Mock.Of<IIncidentSink>(),
             TimeProvider.System,
             NullLogger<NotifyExecutor>.Instance,
             activitySource);

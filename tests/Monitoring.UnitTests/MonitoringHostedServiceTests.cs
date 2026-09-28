@@ -62,6 +62,7 @@ public sealed class MonitoringHostedServiceTests
 
             services.AddSingleton(notificationServiceMock.Object);
             services.AddSingleton(new Mock<IPendingVerificationRepository>().Object);
+            services.AddSingleton(Mock.Of<IIncidentSink>());
 
             services.AddSingleton<IAccessDecisionPolicy, AccessDecisionPolicy>();
             services.AddSingleton<IImageArchiver, FileSystemImageArchiver>();
