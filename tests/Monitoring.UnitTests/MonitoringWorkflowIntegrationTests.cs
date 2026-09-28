@@ -69,6 +69,7 @@ public sealed class MonitoringWorkflowIntegrationTests
             var notify = new NotifyExecutor(
                 notificationServiceMock.Object,
                 pendingVerificationRepositoryMock.Object,
+                Mock.Of<IIncidentSink>(),
                 TimeProvider.System,
                 NullLogger<NotifyExecutor>.Instance,
                 activitySource);

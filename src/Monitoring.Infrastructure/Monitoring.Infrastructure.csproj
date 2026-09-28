@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Monitoring.Application\Monitoring.Application.csproj" />
+    <ProjectReference Include="..\Enrollment.Domain\Enrollment.Domain.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
 

@@ -115,4 +115,48 @@ public sealed class NotifyExecutorTests
         mocker.GetMock<IPendingVerificationRepository>()
             .Verify(x => x.SaveAsync(It.IsAny<PendingVerification>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task Denied_outcome_forwards_an_incident_signal_to_the_sink()
+    {
+        var mocker = CreateMocker();
+        var memberId = Guid.NewGuid();
+        var decision = new AccessDecisionResult(AccessOutcome.Denied, Distance: 0.9, Reason: "far match");
+        var executor = mocker.CreateInstance<NotifyExecutor>();
+
+        await executor.HandleAsync(CreateInput(decision, memberId), Mock.Of<IWorkflowContext>(), CancellationToken.None);
+
+        mocker.GetMock<IIncidentSink>()
+            .Verify(
+                x => x.RecordAsync(
+                    It.Is<IncidentSignal>(s =>
+                        s.Outcome == AccessOutcome.Denied &&
+                        s.CandidateMemberId == memberId &&
+                        s.ImageReference == "processed/image.png"),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+    }
+
+    [Fact]
+    public async Task Incident_sink_failure_is_caught_logged_and_the_run_still_completes()
+    {
+        var mocker = CreateMocker();
+        mocker.GetMock<IIncidentSink>()
+            .Setup(x => x.RecordAsync(It.IsAny<IncidentSignal>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("simulated sink failure"));
+        var decision = new AccessDecisionResult(AccessOutcome.Denied, Distance: null, Reason: "No enrolled member match found");
+        var executor = mocker.CreateInstance<NotifyExecutor>();
+
+        var completed = await executor.HandleAsync(CreateInput(decision), Mock.Of<IWorkflowContext>(), CancellationToken.None);
+
+        Assert.True(completed);
+        mocker.GetMock<ILogger<NotifyExecutor>>().Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
 }

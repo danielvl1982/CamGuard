@@ -26,6 +26,7 @@ namespace Monitoring.Application;
 public sealed class NotifyExecutor(
     INotificationService notificationService,
     IPendingVerificationRepository pendingVerificationRepository,
+    IIncidentSink incidentSink,
     TimeProvider timeProvider,
     ILogger<NotifyExecutor> logger,
     [FromKeyedServices(MonitoringObservability.ActivitySourceName)] ActivitySource activitySource)
@@ -43,6 +44,9 @@ public sealed class NotifyExecutor(
 
     private readonly IPendingVerificationRepository _pendingVerificationRepository =
         pendingVerificationRepository ?? throw new ArgumentNullException(nameof(pendingVerificationRepository));
+
+    private readonly IIncidentSink _incidentSink =
+        incidentSink ?? throw new ArgumentNullException(nameof(incidentSink));
 
     private readonly TimeProvider _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
 
@@ -94,6 +98,28 @@ public sealed class NotifyExecutor(
                 occurredAtUtc);
 
             await _pendingVerificationRepository.SaveAsync(pendingVerification, cancellationToken).ConfigureAwait(false);
+        }
+
+        // incident-log T3: automatic capture hook. Failure-isolated like the
+        // notification call above — a sink failure is logged and swallowed so the
+        // run still completes and archival still proceeds. The sink itself decides
+        // which outcomes become incidents (Denied → AccessDenied/UnknownFace,
+        // zero-face → UnknownFace; Allowed + gray-zone HVR are ignored).
+        var signal = new IncidentSignal(
+            input.ImageReference,
+            input.CandidateMemberId,
+            decision.Distance,
+            decision.Outcome,
+            decision.Reason,
+            occurredAtUtc);
+
+        try
+        {
+            await _incidentSink.RecordAsync(signal, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Incident capture failed for {ImageReference}; workflow run continues.", input.ImageReference);
         }
 
         return true;

@@ -73,8 +73,25 @@ record. The user asked for an incident list as the next task (session 2026-09-27
   build 0 errors + `Incident.cs` boundary readback (no ASP.NET/preview refs).
   *Notes for T3:* `SaveAsync` is INSERT OR REPLACE — generate a fresh `IncidentId`
   per event. *Incident:* stale server PID 20728 stopped by writer (DLL locks).
-- [ ] **T3 — Automatic capture hook** — recognition flow persists unknown-face /
-  denied / annulled-attempt incidents. *Route:* delegated.
+- [ ] **T3 — Automatic capture hook** — DONE 2026-09-28: `IIncidentSink`
+  port (primitives-only, Application never refs Enrollment.Domain) +
+  `IncidentSinkAdapter` (Monitoring.Infrastructure, refs Enrollment.Domain) +
+  `NotifyExecutor` failure-isolated hook + DI (`TryAddScoped`) + 7 new tests.
+  Mapping v1: Denied/no-distance → UnknownFace, Denied/with-distance →
+  AccessDenied (+member), zero-face HVR → UnknownFace; Allowed + gray-zone HVR
+  ignored. AnnulledAttempt RESERVED (annulled filtered in FindNearestAsync, so
+  an annulled attempt surfaces as UnknownFace in v1).
+  *Acceptance:* build 0 errors; Monitoring 70/70 (63 + 7 new), Enrollment
+  104/104. *Route:* direct inline (delegation `task` unavailable: free-tier
+  transport refusal; mapping + writer triggers recorded here instead).
+  *Evidence:* `IIncidentSink.cs`, `NotifyExecutor.cs` (+sink ctor arg, fixed 2
+  manual constructions + hosted-service DI test), `IncidentSinkAdapter.cs`,
+  `Monitoring.Infrastructure.csproj` (+Enrollment.Domain ref),
+  `MonitoringServiceCollectionExtensions.cs`, `NotifyExecutorTests.cs` (+2),
+  `IncidentSinkAdapterTests.cs` (+5 cases), `Monitoring.UnitTests.csproj`
+  (+Enrollment.Domain ref). *Incident:* hosted-service test failed first
+  (manual ServiceCollection lacked the new sink) — fixed with
+  `Mock.Of<IIncidentSink>()`.
 - [ ] **T4 — Manual report form + `/incidents` list page** — operator form
   (kind + note) + list newest-first with kind badge + member link. *Route:*
   delegated.
