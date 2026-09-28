@@ -65,6 +65,25 @@ páginas (Members/Register/MemberDetail/nav)". Same design language, no new patt
 - [x] T4 — MainLayout.razor: nav item scale hover, logo hover, `#blazor-error-ui` a11y fix
 - [x] T5 — Tailwind rebuild (`npm run build`) + `dotnet build` sanity check
 
+## Follow-up fix (post-review)
+- Native review (`review-reliability`) flagged that the 4 NavLink items only kept
+  `transition-colors` after gaining `motion-safe:hover:scale-[1.03]` — `transition-colors`'
+  compiled `transition-property` list doesn't include `scale`/`transform`, so the scale would
+  snap instantly instead of animating, contradicting the intended "subtle" effect. Verified by
+  reading the compiled `wwwroot/app.css`: `.transition-colors` lists only
+  color/background/border/outline/text-decoration/fill/stroke; `.transition-transform` (a
+  separate, non-additive rule) lists transform/translate/scale/rotate — applying both classes
+  to one element doesn't merge them, the later rule in the stylesheet wins for the shared
+  `transition-property` declaration.
+- Fix: replaced `transition-colors` with `transition-all duration-150` on all 4 NavLink items
+  (`MainLayout.razor:25-28`), matching the pattern already used on the card-style hover
+  elements elsewhere. `transition-all`'s compiled rule is `transition-property: all`, confirmed
+  to cover both color and scale. `npm run build` + `dotnet build` re-verified: 0 errors.
+- Other advisory findings from this review round (filter-logic test coverage, client-only
+  maxlength, fetch cancellation token) were left as-is — informational/low-severity, and
+  fixing the test-coverage one would require standing up a Razor/bUnit test project, out of
+  scope for this batch.
+
 ## Verification evidence
 
 - `npm run build` (in `src\Enrollment.Web`): **success**.
