@@ -14,8 +14,12 @@ public sealed class RegisterMemberCommandHandlerTests
 {
     private static void SetupNoDuplicate(AutoMocker mocker)
     {
+        mocker.GetMock<IMemberImageRepository>()
+            .Setup(x => x.ListAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<MemberImage>)[]);
         mocker.GetMock<IMemberImageDuplicateValidator>()
-            .Setup(x => x.FindMatchAsync(It.IsAny<FaceEmbedding>(), It.IsAny<MemberId?>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.FindMatchAsync(
+                It.IsAny<FaceEmbedding>(), It.IsAny<IReadOnlyCollection<MemberImage>>(), It.IsAny<MemberId?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((DuplicateFaceMatch?)null);
     }
 

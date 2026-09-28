@@ -9,7 +9,7 @@ namespace Enrollment.Domain;
 /// store. Images are evidence, not access — they carry no annul semantics and
 /// may be stored for annulled members.
 /// </summary>
-public sealed class MemberImage : EntityBase<MemberImageId>
+public sealed class MemberImage : Entity<MemberImageId>
 {
     private MemberImage(MemberImageId id, MemberId memberId, string fileName, FaceEmbedding embedding, DateTime storedAtUtc)
     {
@@ -38,14 +38,18 @@ public sealed class MemberImage : EntityBase<MemberImageId>
         ArgumentNullException.ThrowIfNull(memberId);
         ArgumentNullException.ThrowIfNull(embedding);
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        return new MemberImage(id, memberId, fileName, embedding, storedAtUtc);
+        return new MemberImage(id, memberId, fileName, embedding, NormalizeTimestamp(storedAtUtc));
     }
 
     /// <summary>
     /// Creates a member image for a freshly stored photo, stamping it with the
-    /// current UTC time. Used by tests and the Infrastructure adapter.
+    /// caller-supplied UTC time (mirrors <see cref="Incident.Create"/>'s pattern:
+    /// the caller — e.g. the Infrastructure image-store adapter — supplies
+    /// <see cref="DateTime.UtcNow"/> at the boundary, keeping this factory
+    /// deterministic and testable).
     /// </summary>
-    public static Result<MemberImage, MemberImageError> Create(MemberImageId id, MemberId memberId, string fileName, FaceEmbedding embedding)
+    public static Result<MemberImage, MemberImageError> Create(
+        MemberImageId id, MemberId memberId, string fileName, FaceEmbedding embedding, DateTime storedAtUtc)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(memberId);
@@ -57,8 +61,13 @@ public sealed class MemberImage : EntityBase<MemberImageId>
         }
 
         return Result.Success<MemberImage, MemberImageError>(
-            new MemberImage(id, memberId, fileName, embedding, DateTime.UtcNow));
+            new MemberImage(id, memberId, fileName, embedding, NormalizeTimestamp(storedAtUtc)));
     }
+
+    private static DateTime NormalizeTimestamp(DateTime value) =>
+        value.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(value, DateTimeKind.Utc)
+            : value.ToUniversalTime();
 }
 
 public enum MemberImageError

@@ -85,9 +85,12 @@ public sealed class RegisterMemberCommandHandler(
         // members' images — BEFORE anything is persisted. The registering member does
         // not exist yet, so nobody is excluded (ownerMemberId: null). On a match the
         // whole registration fails and NOTHING is persisted (no images, no member).
+        // The stored-image list is fetched ONCE for the whole command and reused
+        // across every submitted photo, instead of once per photo.
+        var existingImages = await memberImageRepository.ListAllAsync(cancellationToken).ConfigureAwait(false);
         foreach (var embedding in embeddings)
         {
-            var match = await duplicateValidator.FindMatchAsync(embedding, ownerMemberId: null, cancellationToken)
+            var match = await duplicateValidator.FindMatchAsync(embedding, existingImages, ownerMemberId: null, cancellationToken)
                 .ConfigureAwait(false);
             if (match is not null)
             {

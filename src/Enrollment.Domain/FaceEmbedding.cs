@@ -55,7 +55,7 @@ public sealed record FaceEmbedding
             return Result.Failure<FaceEmbedding, FaceEmbeddingError>(FaceEmbeddingError.ZeroVector);
         }
 
-        return Result.Success<FaceEmbedding, FaceEmbeddingError>(new FaceEmbedding(vector));
+        return Result.Success<FaceEmbedding, FaceEmbeddingError>(new FaceEmbedding(vector.ToArray()));
     }
 
     // Vector is IReadOnlyList<float>, and arrays do not provide structural equality —

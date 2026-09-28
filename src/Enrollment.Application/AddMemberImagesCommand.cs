@@ -77,9 +77,12 @@ public sealed class AddMemberImagesCommandHandler(
         // annulled members' images — BEFORE anything is persisted. The owner is
         // the displayed member, so its own other images never trigger the gate.
         // On a match the whole submission fails and NOTHING is persisted.
+        // The stored-image list is fetched ONCE for the whole command and reused
+        // across every submitted photo, instead of once per photo.
+        var existingImages = await memberImageRepository.ListAllAsync(cancellationToken).ConfigureAwait(false);
         foreach (var embedding in embeddings)
         {
-            var match = await duplicateValidator.FindMatchAsync(embedding, command.MemberId, cancellationToken)
+            var match = await duplicateValidator.FindMatchAsync(embedding, existingImages, command.MemberId, cancellationToken)
                 .ConfigureAwait(false);
             if (match is not null)
             {

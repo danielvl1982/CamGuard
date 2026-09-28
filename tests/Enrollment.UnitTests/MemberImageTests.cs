@@ -54,9 +54,22 @@ public sealed class MemberImageTests : IDisposable
     private static IMemberImageDuplicateValidator NoDuplicateValidator()
     {
         var noDuplicateMock = new Mock<IMemberImageDuplicateValidator>();
-        noDuplicateMock.Setup(x => x.FindMatchAsync(It.IsAny<FaceEmbedding>(), It.IsAny<MemberId?>(), It.IsAny<CancellationToken>()))
+        noDuplicateMock.Setup(x => x.FindMatchAsync(
+                It.IsAny<FaceEmbedding>(), It.IsAny<IReadOnlyCollection<MemberImage>>(), It.IsAny<MemberId?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((DuplicateFaceMatch?)null);
         return noDuplicateMock.Object;
+    }
+
+    [Fact]
+    public void Create_stores_the_caller_supplied_timestamp_deterministically()
+    {
+        var storedAtUtc = new DateTime(2026, 3, 14, 9, 30, 0, DateTimeKind.Utc);
+
+        var created = MemberImage.Create(
+            MemberImageId.New(), MemberId.New(), "seed.jpg", ValidEmbedding(), storedAtUtc);
+
+        Assert.True(created.IsSuccess);
+        Assert.Equal(storedAtUtc, created.Value.StoredAtUtc);
     }
 
     [Fact]
@@ -150,7 +163,7 @@ public sealed class MemberImageTests : IDisposable
         extractorMock.Setup(x => x.ExtractAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success<FaceEmbedding, FaceExtractionError>(ValidEmbedding()));
         var memberRepoMock = new Mock<IMemberVectorRepository>();
-        var duplicateValidator = new MemberImageDuplicateValidator(_images, _options.DuplicateFaceDistanceThreshold);
+        var duplicateValidator = new MemberImageDuplicateValidator(_options.DuplicateFaceDistanceThreshold);
         var handler = new RegisterMemberCommandHandler(extractorMock.Object, memberRepoMock.Object, _images, duplicateValidator);
         var firstPhoto = PhotoBytes();
         var secondPhoto = PhotoBytes();
@@ -183,9 +196,12 @@ public sealed class MemberImageTests : IDisposable
         imageRepoMock.Setup(x => x.SaveAsync(
                 It.IsAny<MemberId>(), It.IsAny<Stream>(), It.IsAny<FaceEmbedding>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("disk full"));
+        imageRepoMock.Setup(x => x.ListAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<MemberImage>)[]);
         var memberRepoMock = new Mock<IMemberVectorRepository>();
         var noDuplicateMock = new Mock<IMemberImageDuplicateValidator>();
-        noDuplicateMock.Setup(x => x.FindMatchAsync(It.IsAny<FaceEmbedding>(), It.IsAny<MemberId?>(), It.IsAny<CancellationToken>()))
+        noDuplicateMock.Setup(x => x.FindMatchAsync(
+                It.IsAny<FaceEmbedding>(), It.IsAny<IReadOnlyCollection<MemberImage>>(), It.IsAny<MemberId?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((DuplicateFaceMatch?)null);
         var handler = new RegisterMemberCommandHandler(extractorMock.Object, memberRepoMock.Object, imageRepoMock.Object, noDuplicateMock.Object);
         var command = new RegisterMemberCommand("Ada Lovelace", [PhotoBytes()]);
@@ -209,6 +225,8 @@ public sealed class MemberImageTests : IDisposable
         imageRepoMock.Setup(x => x.SaveAsync(
                 It.IsAny<MemberId>(), It.IsAny<Stream>(), It.IsAny<FaceEmbedding>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("disk full"));
+        imageRepoMock.Setup(x => x.ListAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<MemberImage>)[]);
         var handler = new RegisterMemberCommandHandler(extractorMock.Object, _members, imageRepoMock.Object, NoDuplicateValidator());
         var command = new RegisterMemberCommand("Ada Lovelace", [PhotoBytes()]);
 

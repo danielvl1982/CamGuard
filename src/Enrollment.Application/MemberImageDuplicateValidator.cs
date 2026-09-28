@@ -30,36 +30,42 @@ public interface IMemberImageDuplicateValidator
     /// own other images never trigger the gate. Images carry no annul semantics,
     /// so annulled members' images participate in matching (OD2).
     /// </summary>
+    /// <param name="candidate">The submitted photo's embedding to match.</param>
+    /// <param name="existingImages">
+    /// Every stored image to match against, already materialized by the caller
+    /// (e.g. one <see cref="IMemberImageRepository.ListAllAsync"/> call per command,
+    /// reused across every submitted photo) — this method never fetches on its own.
+    /// </param>
+    /// <param name="ownerMemberId">Member whose own images are excluded, or <c>null</c>.</param>
     Task<DuplicateFaceMatch?> FindMatchAsync(
         FaceEmbedding candidate,
+        IReadOnlyCollection<MemberImage> existingImages,
         MemberId? ownerMemberId,
         CancellationToken cancellationToken);
 }
 
 /// <summary>
-/// Client-side enumeration over <see cref="IMemberImageRepository.ListAllAsync"/>
-/// (which materializes every image's embedding) — the same pattern T1 uses for
-/// name lookup. Depends only on the domain port plus a plain threshold value, so
-/// Application stays free of options-binding types; the threshold is read from
-/// <c>VectorStoreOptions.DuplicateFaceDistanceThreshold</c> at the composition
-/// root (<c>AddEnrollment</c>).
+/// Client-side enumeration over an already-materialized list of stored images
+/// (typically one <see cref="IMemberImageRepository.ListAllAsync"/> call per
+/// command, reused across every submitted photo instead of a fetch per photo) —
+/// the same pattern T1 uses for name lookup. Depends only on a plain threshold
+/// value, so Application stays free of options-binding types; the threshold is
+/// read from <c>VectorStoreOptions.DuplicateFaceDistanceThreshold</c> at the
+/// composition root (<c>AddEnrollment</c>).
 /// </summary>
-public sealed class MemberImageDuplicateValidator(
-    IMemberImageRepository memberImageRepository,
-    double distanceThreshold) : IMemberImageDuplicateValidator
+public sealed class MemberImageDuplicateValidator(double distanceThreshold) : IMemberImageDuplicateValidator
 {
-    public async Task<DuplicateFaceMatch?> FindMatchAsync(
+    public Task<DuplicateFaceMatch?> FindMatchAsync(
         FaceEmbedding candidate,
+        IReadOnlyCollection<MemberImage> existingImages,
         MemberId? ownerMemberId,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(candidate);
-        ArgumentNullException.ThrowIfNull(memberImageRepository);
-
-        var images = await memberImageRepository.ListAllAsync(cancellationToken).ConfigureAwait(false);
+        ArgumentNullException.ThrowIfNull(existingImages);
 
         DuplicateFaceMatch? best = null;
-        foreach (var image in images)
+        foreach (var image in existingImages)
         {
             if (ownerMemberId is not null && image.MemberId == ownerMemberId)
             {
@@ -73,7 +79,7 @@ public sealed class MemberImageDuplicateValidator(
             }
         }
 
-        return best is not null && best.Distance < distanceThreshold ? best : null;
+        return Task.FromResult(best is not null && best.Distance < distanceThreshold ? best : null);
     }
 
     /// <summary>

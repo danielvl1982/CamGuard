@@ -80,7 +80,7 @@ public sealed class MemberDuplicateFaceTests
         var bobEmbedding = Embedding(0.8f);
         var images = new InMemoryImageRepository();
         images.Seed(StoredImage(bobId, bobEmbedding));
-        var validator = new MemberImageDuplicateValidator(images, Threshold);
+        var validator = new MemberImageDuplicateValidator(Threshold);
         var extractorMock = new Mock<IFaceEmbeddingExtractor>();
         SetupExtraction(extractorMock, bobEmbedding);
         var memberRepoMock = new Mock<IMemberVectorRepository>();
@@ -107,10 +107,11 @@ public sealed class MemberDuplicateFaceTests
         var ownerEmbedding = Embedding(0.8f);
         var images = new InMemoryImageRepository();
         images.Seed(StoredImage(ownerId, ownerEmbedding));
-        var validator = new MemberImageDuplicateValidator(images, Threshold);
+        var validator = new MemberImageDuplicateValidator(Threshold);
+        var existingImages = await images.ListAllAsync(CancellationToken.None);
 
         // T7's call shape: the owner's own near-identical image must not match.
-        var match = await validator.FindMatchAsync(ownerEmbedding, ownerId, CancellationToken.None);
+        var match = await validator.FindMatchAsync(ownerEmbedding, existingImages, ownerId, CancellationToken.None);
 
         Assert.Null(match);
     }
@@ -124,9 +125,10 @@ public sealed class MemberDuplicateFaceTests
         var images = new InMemoryImageRepository();
         images.Seed(StoredImage(farId, EmbeddingAtDistance(0.3)));
         images.Seed(StoredImage(nearId, EmbeddingAtDistance(0.1)));
-        var validator = new MemberImageDuplicateValidator(images, Threshold);
+        var validator = new MemberImageDuplicateValidator(Threshold);
+        var existingImages = await images.ListAllAsync(CancellationToken.None);
 
-        var match = await validator.FindMatchAsync(candidate, ownerMemberId: null, CancellationToken.None);
+        var match = await validator.FindMatchAsync(candidate, existingImages, ownerMemberId: null, CancellationToken.None);
 
         Assert.NotNull(match);
         Assert.Equal(nearId, match.MatchedMemberId);
@@ -139,7 +141,7 @@ public sealed class MemberDuplicateFaceTests
         var otherId = MemberId.New();
         var images = new InMemoryImageRepository();
         images.Seed(StoredImage(otherId, EmbeddingAtDistance(0.41)));
-        var validator = new MemberImageDuplicateValidator(images, Threshold);
+        var validator = new MemberImageDuplicateValidator(Threshold);
         var candidate = Embedding(1f);
         var extractorMock = new Mock<IFaceEmbeddingExtractor>();
         SetupExtraction(extractorMock, candidate);
@@ -164,10 +166,11 @@ public sealed class MemberDuplicateFaceTests
         var otherId = MemberId.New();
         var images = new InMemoryImageRepository();
         images.Seed(StoredImage(otherId, EmbeddingAtDistance(distance)));
-        var validator = new MemberImageDuplicateValidator(images, Threshold);
+        var validator = new MemberImageDuplicateValidator(Threshold);
         var candidate = Embedding(1f);
+        var existingImages = await images.ListAllAsync(CancellationToken.None);
 
-        var match = await validator.FindMatchAsync(candidate, ownerMemberId: null, CancellationToken.None);
+        var match = await validator.FindMatchAsync(candidate, existingImages, ownerMemberId: null, CancellationToken.None);
 
         Assert.Equal(expectMatch, match is not null);
     }
@@ -181,7 +184,7 @@ public sealed class MemberDuplicateFaceTests
         var annulledEmbedding = Embedding(0.8f);
         var images = new InMemoryImageRepository();
         images.Seed(StoredImage(annulledId, annulledEmbedding));
-        var validator = new MemberImageDuplicateValidator(images, Threshold);
+        var validator = new MemberImageDuplicateValidator(Threshold);
         var extractorMock = new Mock<IFaceEmbeddingExtractor>();
         SetupExtraction(extractorMock, annulledEmbedding);
         var memberRepoMock = new Mock<IMemberVectorRepository>();
@@ -208,7 +211,7 @@ public sealed class MemberDuplicateFaceTests
         var bobEmbedding = Embedding(0.8f);
         var images = new InMemoryImageRepository();
         images.Seed(StoredImage(bobId, bobEmbedding));
-        var validator = new MemberImageDuplicateValidator(images, Threshold);
+        var validator = new MemberImageDuplicateValidator(Threshold);
         var extractorMock = new Mock<IFaceEmbeddingExtractor>();
         SetupExtraction(extractorMock, Embedding(0.1f, 0.9f), bobEmbedding);
         var memberRepoMock = new Mock<IMemberVectorRepository>();

@@ -31,6 +31,15 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
     private readonly string _collectionName;
     private readonly ActivitySource _activitySource;
 
+    /// <summary>
+    /// Caches that the schema has already been ensured for this repository instance.
+    /// Safe as an instance-level (not static/shared) cache specifically because this
+    /// type is registered Scoped (see <c>EnrollmentServiceCollectionExtensions</c>):
+    /// each scope gets its own instance, so a schema check runs at most once per
+    /// scope instead of once per public call.
+    /// </summary>
+    private bool _schemaEnsured;
+
     public SqliteVecMemberRepository(
         IOptions<VectorStoreOptions> options,
         [FromKeyedServices(EnrollmentServiceCollectionExtensions.ActivitySourceName)] ActivitySource activitySource)
@@ -61,8 +70,15 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
     /// </summary>
     private async Task EnsureSchemaAsync(CancellationToken cancellationToken)
     {
+        if (_schemaEnsured)
+        {
+            return;
+        }
+
         await _collection.EnsureCollectionExistsAsync(cancellationToken).ConfigureAwait(false);
         await EnsureAnnulledColumnAsync(cancellationToken).ConfigureAwait(false);
+
+        _schemaEnsured = true;
     }
 
     private async Task EnsureAnnulledColumnAsync(CancellationToken cancellationToken)

@@ -59,7 +59,6 @@ public static class EnrollmentServiceCollectionExtensions
         services.TryAddScoped<IIncidentRepository, SqliteIncidentRepository>();
         services.TryAddScoped<IMemberImageDuplicateValidator>(sp =>
             new MemberImageDuplicateValidator(
-                sp.GetRequiredService<IMemberImageRepository>(),
                 sp.GetRequiredService<IOptions<VectorStoreOptions>>().Value.DuplicateFaceDistanceThreshold));
         services.TryAddScoped<RegisterMemberCommandHandler>();
         services.TryAddScoped<AddMemberImagesCommandHandler>();
