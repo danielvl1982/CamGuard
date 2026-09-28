@@ -64,18 +64,18 @@
                             <td class="px-4 py-3 text-text">
                                 @if (pendingAnnulId is not null && pendingAnnulId.Equals(member.Id))
                                 {
-                                    <span class="text-sm text-text-muted">¿Confirmar anulación?</span>
+                                    <span class="text-sm text-text-muted">Disable this member?</span>
                                     <button type="button"
                                             class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
                                             disabled="@(isAnnulling ? "disabled" : null)"
                                             @onclick="() => ConfirmAnnulAsync(member)">
-                                        @(isAnnulling ? "Anulando…" : "Sí, anular")
+                                        @(isAnnulling ? "Disabling…" : "Yes, disable")
                                     </button>
                                     <button type="button"
                                             class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
                                             disabled="@(isAnnulling ? "disabled" : null)"
                                             @onclick="CancelAnnul">
-                                        Cancelar
+                                        Cancel
                                     </button>
                                 }
                                 else
@@ -84,7 +84,7 @@
                                             class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
                                             disabled="@(isAnnulling ? "disabled" : null)"
                                             @onclick="() => ArmAnnul(member)">
-                                        Anular
+                                        Disable
                                     </button>
                                 }
                             </td>
@@ -166,18 +166,18 @@
             await LoadAsync();
             // ListAllAsync already excludes annulled members (T1), so the row
             // disappears on refresh — no client-side filtering needed.
-            notice = $"El miembro '{member.FullName}' fue anulado.";
+            notice = $"Member '{member.FullName}' was disabled.";
             noticeIsError = false;
         }
         catch (KeyNotFoundException)
         {
-            notice = $"No se encontró el miembro '{member.FullName}'. Es posible que ya haya sido eliminado.";
+            notice = $"Member '{member.FullName}' was not found. It may already have been removed.";
             noticeIsError = true;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to annul member {MemberId}.", member.Id);
-            notice = $"No se pudo anular a '{member.FullName}'. Vuelva a intentarlo.";
+            notice = $"Could not disable '{member.FullName}'. Please try again.";
             noticeIsError = true;
         }
         finally
