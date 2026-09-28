@@ -19,6 +19,13 @@ public sealed class DetectPersonExecutor(
     [FromKeyedServices(MonitoringObservability.ActivitySourceName)] ActivitySource activitySource)
     : Executor<MonitoringWorkflowContext, MonitoringWorkflowContext>(nameof(DetectPersonExecutor))
 {
+    /// <summary>
+    /// Shared with <see cref="Monitoring.Infrastructure.IncidentSinkAdapter"/>'s <c>MapKind</c>
+    /// so the zero-face short-circuit reason and its incident-mapping pattern never drift apart —
+    /// <c>Monitoring.Infrastructure</c> references <c>Monitoring.Application</c>, never the reverse.
+    /// </summary>
+    public const string NoFaceDetectedReason = "No face detected";
+
     private readonly IPersonDetector _personDetector = personDetector ?? throw new ArgumentNullException(nameof(personDetector));
     private readonly ActivitySource _activitySource = activitySource ?? throw new ArgumentNullException(nameof(activitySource));
 
@@ -45,7 +52,7 @@ public sealed class DetectPersonExecutor(
             var shortCircuitDecision = new AccessDecisionResult(
                 AccessOutcome.HumanVerificationRequired,
                 Distance: null,
-                Reason: "No face detected");
+                Reason: NoFaceDetectedReason);
 
             return input with { EmbeddingVector = null, Decision = shortCircuitDecision };
         }

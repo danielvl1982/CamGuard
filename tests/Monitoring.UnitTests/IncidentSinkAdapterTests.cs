@@ -64,7 +64,7 @@ public sealed class IncidentSinkAdapterTests
         var adapter = CreateAdapter(incidentsMock);
 
         await adapter.RecordAsync(
-            Signal(AccessOutcome.HumanVerificationRequired, null, null, "No face detected"),
+            Signal(AccessOutcome.HumanVerificationRequired, null, null, DetectPersonExecutor.NoFaceDetectedReason),
             CancellationToken.None);
 
         incidentsMock.Verify(

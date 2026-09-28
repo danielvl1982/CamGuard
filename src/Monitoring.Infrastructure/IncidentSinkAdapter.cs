@@ -70,7 +70,7 @@ public sealed class IncidentSinkAdapter(
     {
         { Outcome: AccessOutcome.Denied, Distance: null } => IncidentKind.UnknownFace,
         { Outcome: AccessOutcome.Denied } => IncidentKind.AccessDenied,
-        { Outcome: AccessOutcome.HumanVerificationRequired, Reason: "No face detected" } => IncidentKind.UnknownFace,
+        { Outcome: AccessOutcome.HumanVerificationRequired, Reason: DetectPersonExecutor.NoFaceDetectedReason } => IncidentKind.UnknownFace,
         _ => null,
     };
 }

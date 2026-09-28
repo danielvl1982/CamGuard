@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Monitoring.Application;
+using System.Diagnostics;
 
 namespace Monitoring.Infrastructure;
 
@@ -20,6 +21,8 @@ public sealed class MonitoringHostedService(
     IServiceScopeFactory scopeFactory,
     ILogger<MonitoringHostedService> logger) : BackgroundService
 {
+    private const int MaxWorkflowAttempts = 3;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await foreach (var path in ingestionSource.WatchAsync(stoppingToken).ConfigureAwait(false))
@@ -37,14 +40,7 @@ public sealed class MonitoringHostedService(
         {
             var workflowHost = scope.ServiceProvider.GetRequiredService<MonitoringWorkflowHost>();
 
-            bool completed;
-            await using (var imageStream = File.OpenRead(path))
-            {
-                var input = new MonitoringWorkflowContext(path, imageStream, null, null, null, null);
-                await using var run = await InProcessExecution.RunAsync(workflowHost.Workflow, input, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-                completed = run.OutgoingEvents.OfType<WorkflowOutputEvent>().Single().As<bool>();
-            } // stream closed before archival — File.Move requires an unlocked file
+            var completed = await RunWorkflowWithRetryAsync(workflowHost, path, cancellationToken).ConfigureAwait(false);
 
             if (completed)
             {
@@ -71,5 +67,43 @@ public sealed class MonitoringHostedService(
             // loop must keep running regardless.
             logger.LogError(ex, "Failed to move {Path} to quarantine after a failed workflow run.", path);
         }
+    }
+
+    /// <summary>
+    /// Runs the workflow against a fresh read of <paramref name="path"/>, retrying transient
+    /// failures up to <see cref="MaxWorkflowAttempts"/> times with a short backoff. Every attempt
+    /// re-opens the file — the stream is consumed by the workflow run, so a retry must never reuse
+    /// an already-read/positioned stream. The final attempt's exception is left uncaught so
+    /// <see cref="ProcessFileAsync"/>'s own catch block still logs and quarantines exactly as today.
+    /// </summary>
+    private async Task<bool> RunWorkflowWithRetryAsync(MonitoringWorkflowHost workflowHost, string path, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; attempt <= MaxWorkflowAttempts; attempt++)
+        {
+            try
+            {
+                bool completed;
+                await using (var imageStream = File.OpenRead(path))
+                {
+                    var input = new MonitoringWorkflowContext(path, imageStream, null, null, null, null);
+                    await using var run = await InProcessExecution.RunAsync(workflowHost.Workflow, input, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+                    completed = run.OutgoingEvents.OfType<WorkflowOutputEvent>().Single().As<bool>();
+                } // stream closed before archival — File.Move requires an unlocked file
+
+                return completed;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException && attempt < MaxWorkflowAttempts)
+            {
+                logger.LogWarning(
+                    "Workflow run attempt {Attempt}/{MaxAttempts} failed for {Path}; retrying.",
+                    attempt,
+                    MaxWorkflowAttempts,
+                    path);
+                await Task.Delay(TimeSpan.FromMilliseconds(200 * attempt), cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        throw new UnreachableException();
     }
 }

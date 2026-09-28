@@ -80,6 +80,18 @@ public static class MonitoringServiceCollectionExtensions
         }
         else
         {
+            // Only the real Ntfy/Email channels require these options to be configured — the
+            // Development branch above uses LoggingNotificationService instead, so NtfyOptions/
+            // EmailNotificationOptions are legitimately allowed to be empty there. Mirrors
+            // AccessDecisionOptions's fail-fast `.Validate(...)` above.
+            services.AddOptions<NtfyOptions>()
+                .Validate(o => !string.IsNullOrWhiteSpace(o.Topic), "Topic must not be empty.");
+
+            services.AddOptions<EmailNotificationOptions>()
+                .Validate(o => !string.IsNullOrWhiteSpace(o.SmtpHost), "SmtpHost must not be empty.")
+                .Validate(o => !string.IsNullOrWhiteSpace(o.FromAddress), "FromAddress must not be empty.")
+                .Validate(o => !string.IsNullOrWhiteSpace(o.ToAddress), "ToAddress must not be empty.");
+
             services.TryAddScoped<INotificationService>(sp => new CompositeNotificationService(
                 [sp.GetRequiredService<NtfyNotificationService>(), sp.GetRequiredService<EmailNotificationService>()],
                 sp.GetRequiredService<ILogger<CompositeNotificationService>>()));
