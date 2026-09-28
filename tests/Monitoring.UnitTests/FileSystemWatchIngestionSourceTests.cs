@@ -1,7 +1,9 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Monitoring.Infrastructure;
+using Moq;
 
 namespace Monitoring.UnitTests;
 
@@ -112,6 +114,55 @@ public sealed class FileSystemWatchIngestionSourceTests
 
             Assert.Single(received);
             Assert.Equal(filePath, received[0]);
+        }
+        finally
+        {
+            Directory.Delete(watchRoot, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Full_channel_logs_the_dropped_event_instead_of_silently_discarding_it()
+    {
+        var watchRoot = CreateTempWatchRoot();
+        try
+        {
+            var loggerMock = new Mock<ILogger<FileSystemWatchIngestionSource>>();
+            using var source = new FileSystemWatchIngestionSource(
+                Options.Create(new WatchFolderOptions
+                {
+                    Path = watchRoot,
+                    StabilityRetryDelayMilliseconds = 20,
+                    MaxStabilityRetryAttempts = 25,
+                    ChannelCapacity = 1,
+                }),
+                loggerMock.Object,
+                new ActivitySource("Test.Monitoring.Ingestion"));
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await using var enumerator = source.WatchAsync(cts.Token).GetAsyncEnumerator(cts.Token);
+            var moveNextTask = enumerator.MoveNextAsync().AsTask();
+
+            await Task.Delay(200); // let the FileSystemWatcher attach before the burst
+
+            // A same-instant burst against a single-slot channel: the stability check on each
+            // file (opening it exclusively) is slower than the writes below, so the channel
+            // fills up and TryWrite must reject the overflow instead of silently evicting it.
+            for (var i = 0; i < 30; i++)
+            {
+                await File.WriteAllBytesAsync(Path.Combine(watchRoot, $"burst-{i}.png"), [1, 2, 3]);
+            }
+
+            Assert.True(await moveNextTask); // the channel still delivers at least the first file
+
+            loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.AtLeastOnce);
         }
         finally
         {

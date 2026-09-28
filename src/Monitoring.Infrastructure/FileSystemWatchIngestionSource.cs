@@ -46,7 +46,11 @@ public sealed class FileSystemWatchIngestionSource : IIngestionSource, IDisposab
         {
             SingleReader = true,
             SingleWriter = false,
-            FullMode = BoundedChannelFullMode.DropOldest,
+            // Wait (not DropOldest): under DropOldest, TryWrite below always succeeds by silently
+            // evicting the oldest queued path, so a burst of creates could lose files with no log
+            // line ever firing. Wait makes TryWrite correctly return false when full, so the drop
+            // below is actually observed instead of happening invisibly.
+            FullMode = BoundedChannelFullMode.Wait,
         });
     }
 
