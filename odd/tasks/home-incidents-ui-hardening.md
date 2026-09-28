@@ -90,7 +90,30 @@ hover-driven size transitions on sections for polish.
   `Home.razor:88` and `Incidents.razor:89`: now `@(incident.Note ?? "—")`, a neutral placeholder
   instead of the raw path. `dotnet build` re-verified: 0 errors.
 
-## Follow-up fix 2 (double-fetch on every InteractiveServer page)
+## Follow-up fix 3 (native review correction — CRITICAL, supersedes fix 2)
+- Native review escalated the "double-fetch" trade-off to **CRITICAL**: with `prerender:
+  false`, if the SignalR circuit never connects (blocked WebSockets, restrictive corporate
+  proxy — realistic for an internal admin tool), the user is stuck on a permanently blank
+  shell with no rendered content and no error affordance, and this failure path was never
+  exercised (only the success path was verified with a real browser).
+- Investigated the "correct" fix first — `PersistentComponentState` (persist the prerendered
+  fetch result, restore it on interactive reconnect, keeping both prerender AND avoiding the
+  double query). Ruled out: `Incident` and `IncidentId` have private constructors with only
+  `Create`/`Rehydrate`/`From` factory methods — System.Text.Json's default reflection
+  deserializer can't construct them, so `TryTakeFromJson<IReadOnlyList<Incident>>` would throw
+  at runtime. Doing this properly needs a hand-written DTO + mapping per page (4x), non-trivial
+  and easy to get subtly wrong for a "nice to have" optimization.
+- **Fix applied**: reverted `@rendermode @(new InteractiveServerRenderMode(prerender: false))`
+  back to plain `@rendermode InteractiveServer` (default `prerender: true`) on all 4 pages
+  (Home, Incidents, Members, MemberDetail). This directly eliminates the CRITICAL blank-page
+  risk — content is guaranteed on the first HTTP response again, regardless of whether the
+  interactive circuit ever connects. The double-`OnInitializedAsync` invocation (the original
+  WARNING-level concern fix 2 addressed) is back as an accepted, lower-severity trade-off.
+- Verified: `dotnet build` — 0 errors. Curled `/` and `/members` on the rebuilt app — both now
+  contain their real content (e.g. "Recent incidents") in the raw HTTP response, confirming
+  prerendering is active again.
+
+## Follow-up fix 2 (double-fetch on every InteractiveServer page) — SUPERSEDED by fix 3 above
 - Native review flagged that `@rendermode InteractiveServer` (default `prerender: true`) makes
   `OnInitializedAsync`/`OnParametersSetAsync` run twice per page load: once during the static
   prerender pass, once again when the interactive SignalR circuit connects. This is a
