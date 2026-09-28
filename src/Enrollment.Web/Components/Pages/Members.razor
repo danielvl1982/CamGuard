@@ -46,7 +46,7 @@
     }
     else if (members is not null)
     {
-        <div class="rounded-lg border border-border bg-surface">
+        <div class="overflow-x-auto rounded-lg border border-border bg-surface">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-elevated text-left">
@@ -58,18 +58,18 @@
                 <tbody>
                     @foreach (var member in members)
                     {
-                        <tr @key="member.Id" class="border-t border-border">
+                        <tr @key="member.Id" class="border-t border-border transition-colors hover:bg-surface">
                             <td class="px-4 py-3 text-text"><a href="@($"/members/{member.Id}")">@member.FullName</a></td>
                             <td class="px-4 py-3 text-text-muted"><code>@member.Id</code></td>
                             <td class="px-4 py-3 text-text">
                                 @if (pendingAnnulId is not null && pendingAnnulId.Equals(member.Id))
                                 {
-                                    <span class="text-sm text-text-muted">Confirm annul?</span>
+                                    <span class="text-sm text-text-muted">Disable this member?</span>
                                     <button type="button"
                                             class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
                                             disabled="@(isAnnulling ? "disabled" : null)"
                                             @onclick="() => ConfirmAnnulAsync(member)">
-                                        @(isAnnulling ? "Annulling…" : "Yes, annul")
+                                        @(isAnnulling ? "Disabling…" : "Yes, disable")
                                     </button>
                                     <button type="button"
                                             class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
@@ -84,7 +84,7 @@
                                             class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
                                             disabled="@(isAnnulling ? "disabled" : null)"
                                             @onclick="() => ArmAnnul(member)">
-                                        Annul
+                                        Disable
                                     </button>
                                 }
                             </td>
@@ -166,7 +166,7 @@
             await LoadAsync();
             // ListAllAsync already excludes annulled members (T1), so the row
             // disappears on refresh — no client-side filtering needed.
-            notice = $"Member '{member.FullName}' was annulled.";
+            notice = $"Member '{member.FullName}' was disabled.";
             noticeIsError = false;
         }
         catch (KeyNotFoundException)
@@ -177,7 +177,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to annul member {MemberId}.", member.Id);
-            notice = $"Could not annul '{member.FullName}'. Please try again.";
+            notice = $"Could not disable '{member.FullName}'. Please try again.";
             noticeIsError = true;
         }
         finally

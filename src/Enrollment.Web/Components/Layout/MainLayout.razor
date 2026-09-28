@@ -6,7 +6,7 @@
 <div class="flex min-h-screen flex-col bg-base text-text">
     <header class="border-b border-border bg-surface">
         <div class="mx-auto flex w-full max-w-6xl items-center px-4 py-3">
-            <a href="/" class="flex items-center gap-3 rounded" aria-label="CamGuard home">
+            <a href="/" class="flex items-center gap-3 rounded transition-transform motion-safe:hover:scale-[1.02]" aria-label="CamGuard home">
                 <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true" class="shrink-0 text-text">
                     <path d="M16 2.5 27.5 7v8.5c0 6.8-4.8 11.8-11.5 14C9.3 27.3 4.5 22.3 4.5 15.5V7L16 2.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
                     <circle cx="16" cy="15" r="5" stroke="currentColor" stroke-width="2" class="text-accent" />
@@ -22,10 +22,10 @@
 
     <nav class="border-b border-border bg-elevated" aria-label="Primary">
         <div class="mx-auto flex w-full max-w-6xl gap-1 px-4 py-2">
-            <NavLink href="/" Match="NavLinkMatch.All" class="rounded px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text" ActiveClass="bg-surface text-text">Home</NavLink>
-            <NavLink href="/register" class="rounded px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text" ActiveClass="bg-surface text-text">Register</NavLink>
-            <NavLink href="/members" class="rounded px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text" ActiveClass="bg-surface text-text">Members</NavLink>
-            <NavLink href="/incidents" class="rounded px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text" ActiveClass="bg-surface text-text">Incidents</NavLink>
+            <NavLink href="/" Match="NavLinkMatch.All" class="rounded px-3 py-2 text-sm text-text-muted transition-all duration-150 hover:bg-surface hover:text-text motion-safe:hover:scale-[1.03]" ActiveClass="bg-surface text-text">Home</NavLink>
+            <NavLink href="/register" class="rounded px-3 py-2 text-sm text-text-muted transition-all duration-150 hover:bg-surface hover:text-text motion-safe:hover:scale-[1.03]" ActiveClass="bg-surface text-text">Register</NavLink>
+            <NavLink href="/members" class="rounded px-3 py-2 text-sm text-text-muted transition-all duration-150 hover:bg-surface hover:text-text motion-safe:hover:scale-[1.03]" ActiveClass="bg-surface text-text">Members</NavLink>
+            <NavLink href="/incidents" class="rounded px-3 py-2 text-sm text-text-muted transition-all duration-150 hover:bg-surface hover:text-text motion-safe:hover:scale-[1.03]" ActiveClass="bg-surface text-text">Incidents</NavLink>
         </div>
     </nav>
 
@@ -43,8 +43,8 @@
     </footer>
 </div>
 
-<div id="blazor-error-ui" data-nosnippet>
+<div id="blazor-error-ui" data-nosnippet role="alert">
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <button type="button" class="dismiss" aria-label="Dismiss">🗙</button>
 </div>
