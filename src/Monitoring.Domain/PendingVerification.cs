@@ -10,10 +10,9 @@ namespace Monitoring.Domain;
 /// record requires a separate, out-of-scope write path.
 ///
 /// <para>
-/// Extends <see cref="Entity{TId}"/> directly (never <c>Enrollment.Domain.EntityBase&lt;TId&gt;</c>,
-/// which lives in the internal <c>Enrollment.Domain</c> project that <c>Monitoring.*</c> is never
-/// allowed to reference). This entity raises no domain events, per the <c>entity-model</c> skill's
-/// decision gate ("entity with no domain events or audit → <c>Entity&lt;TId&gt;</c> directly").
+/// Extends <see cref="Entity{TId}"/> directly: this entity raises no domain events, per the
+/// <c>entity-model</c> skill's decision gate ("entity with no domain events or audit →
+/// <c>Entity&lt;TId&gt;</c> directly").
 /// </para>
 /// </summary>
 public sealed class PendingVerification : Entity<PendingVerificationId>

@@ -6,7 +6,7 @@ namespace Enrollment.Domain;
 /// Aggregate root for an authorized member enrolled with exactly one validated
 /// face embedding. See <c>member-enrollment</c> spec for enrollment invariants.
 /// </summary>
-public sealed class Member : EntityBase<MemberId>
+public sealed class Member : Entity<MemberId>
 {
     private Member(MemberId id, string fullName, FaceEmbedding embedding, bool isAnnulled)
     {
@@ -42,10 +42,7 @@ public sealed class Member : EntityBase<MemberId>
         return new Member(id, fullName, embedding, isAnnulled);
     }
 
-    /// <summary>
-    /// Enrolls a member from identity data and one already-validated face embedding.
-    /// Raises <see cref="MemberEnrolled"/> on success.
-    /// </summary>
+    /// <summary>Enrolls a member from identity data and one already-validated face embedding.</summary>
     public static Result<Member, MemberError> Enroll(MemberId id, string fullName, FaceEmbedding embedding)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -57,7 +54,6 @@ public sealed class Member : EntityBase<MemberId>
         }
 
         var member = new Member(id, fullName, embedding, isAnnulled: false);
-        member.Raise(new MemberEnrolled(id));
 
         return Result.Success<Member, MemberError>(member);
     }

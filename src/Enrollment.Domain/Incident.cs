@@ -1,3 +1,5 @@
+using CSharpFunctionalExtensions;
+
 namespace Enrollment.Domain;
 
 /// <summary>
@@ -6,7 +8,7 @@ namespace Enrollment.Domain;
 /// manual operator note. Written by the T3 capture hook / T4 manual form and listed
 /// newest-first. Incidents are evidence, never access: they carry no annul semantics.
 /// </summary>
-public sealed class Incident : EntityBase<IncidentId>
+public sealed class Incident : Entity<IncidentId>
 {
     private Incident(
         IncidentId id,

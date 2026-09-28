@@ -28,18 +28,6 @@ public sealed class MemberTests
         Assert.Equal(embedding, result.Value.Embedding);
     }
 
-    [Fact]
-    public void Enroll_raises_MemberEnrolled_domain_event_on_success()
-    {
-        var id = MemberId.New();
-
-        var result = Member.Enroll(id, "Grace Hopper", ValidEmbedding());
-
-        var raised = Assert.Single(result.Value.DomainEvents);
-        var memberEnrolled = Assert.IsType<MemberEnrolled>(raised);
-        Assert.Equal(id, memberEnrolled.MemberId);
-    }
-
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
