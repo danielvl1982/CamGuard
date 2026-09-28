@@ -82,6 +82,14 @@ hover-driven size transitions on sections for polish.
   no manual hover/filter interaction, no narrow-viewport check) — only HTTP-level and
   markup-level verification was done in this session.
 
+## Follow-up fix (post-review)
+- Native review (`review-reliability` lens) on the combined UI-polish candidate flagged that
+  the Note column's fallback (`incident.Note ?? incident.SnapshotImagePath ?? "—"`) leaked an
+  internal server file path into the UI whenever a note was empty but a snapshot path was set
+  — copied verbatim from the pre-existing pattern in Incidents.razor. Fixed in both
+  `Home.razor:88` and `Incidents.razor:89`: now `@(incident.Note ?? "—")`, a neutral placeholder
+  instead of the raw path. `dotnet build` re-verified: 0 errors.
+
 ## Acceptance criteria
 - Home page renders the two existing action sections unchanged, plus a new incidents preview
   below them, filterable by Kind and note text, with visible loading/empty/error states.

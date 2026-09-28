@@ -86,7 +86,7 @@
                         <tr @key="incident.Id" class="border-t border-border">
                             <td class="px-4 py-3 text-text-muted"><code>@incident.OccurredAtUtc.ToString("u")</code></td>
                             <td class="px-4 py-3 text-text"><span class="rounded border border-border px-2 py-1 text-sm">@incident.Kind</span></td>
-                            <td class="px-4 py-3 text-text">@(incident.Note ?? incident.SnapshotImagePath ?? "—")</td>
+                            <td class="px-4 py-3 text-text">@(incident.Note ?? "—")</td>
                             <td class="px-4 py-3 text-text">
                                 @if (incident.MemberId is not null)
                                 {
