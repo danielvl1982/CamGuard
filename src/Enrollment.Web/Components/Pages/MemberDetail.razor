@@ -1,5 +1,5 @@
 @page "/members/{id:guid}"
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @using Enrollment.Application
 @using Enrollment.Domain

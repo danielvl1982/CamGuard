@@ -90,6 +90,34 @@ hover-driven size transitions on sections for polish.
   `Home.razor:88` and `Incidents.razor:89`: now `@(incident.Note ?? "—")`, a neutral placeholder
   instead of the raw path. `dotnet build` re-verified: 0 errors.
 
+## Follow-up fix 2 (double-fetch on every InteractiveServer page)
+- Native review flagged that `@rendermode InteractiveServer` (default `prerender: true`) makes
+  `OnInitializedAsync`/`OnParametersSetAsync` run twice per page load: once during the static
+  prerender pass, once again when the interactive SignalR circuit connects. This is a
+  pre-existing pattern (Incidents.razor/Members.razor already had it before this batch), not
+  something newly introduced — but Home.razor's new incidents fetch made it visible/costly
+  enough to flag.
+- Verified before fixing: confirmed `Program.cs` uses the default
+  `AddInteractiveServerComponents()` + `AddInteractiveServerRenderMode()` setup with no
+  `prerender: false` anywhere, so the double-invocation is real, not hypothetical.
+- Fix: changed `@rendermode InteractiveServer` to
+  `@rendermode @(new InteractiveServerRenderMode(prerender: false))` in the 4 pages that
+  actually fetch data on init/parameters-set: `Home.razor`, `Incidents.razor`, `Members.razor`,
+  `MemberDetail.razor`. Left `Register.razor` untouched — it has no `OnInitializedAsync`/data
+  fetch, so there was nothing to double there.
+- Verification: `dotnet build` — 0 errors. Ran the app and curled `/` again: previously (before
+  this fix) a plain HTTP GET logged `"Failed to load the incidents preview on Home."` (proving
+  `OnInitializedAsync` ran during the prerender/static-request phase). After the fix, the same
+  curl produces **zero** occurrences of that log line — confirming the static-request-side
+  invocation is gone. The remaining single invocation now only happens once the interactive
+  SignalR circuit actually connects (not reproducible via curl; would need a real browser
+  session to observe directly).
+- Trade-off, disclosed: these 4 pages no longer prerender, so the initial HTTP response shows
+  the page shell without server-rendered content until the interactive circuit connects
+  (slightly later paint) — an accepted trade-off to eliminate the duplicate query and the
+  double loading-state flash, given these are internal, already fully interactive admin pages
+  with no SEO requirement.
+
 ## Acceptance criteria
 - Home page renders the two existing action sections unchanged, plus a new incidents preview
   below them, filterable by Kind and note text, with visible loading/empty/error states.
