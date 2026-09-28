@@ -463,6 +463,11 @@
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
     transition-duration: var(--tw-duration, var(--default-transition-duration));
   }
+  .transition-transform {
+    transition-property: transform, translate, scale, rotate;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
   .duration-150 {
     --tw-duration: 150ms;
     transition-duration: 150ms;
@@ -495,6 +500,12 @@
       .motion-safe\:hover\:-translate-y-0\.5:hover {
         --tw-translate-y: calc(var(--spacing) * -0.5);
         translate: var(--tw-translate-x) var(--tw-translate-y);
+      }
+      .motion-safe\:hover\:scale-\[1\.02\]:hover {
+        scale: 1.02;
+      }
+      .motion-safe\:hover\:scale-\[1\.03\]:hover {
+        scale: 1.03;
       }
       .motion-safe\:hover\:shadow-lg:hover {
         --tw-shadow: 0 10px 15px -3px var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 4px 6px -4px var(--tw-shadow-color, rgb(0 0 0 / 0.1));

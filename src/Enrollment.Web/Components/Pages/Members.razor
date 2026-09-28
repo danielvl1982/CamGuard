@@ -46,7 +46,7 @@
     }
     else if (members is not null)
     {
-        <div class="rounded-lg border border-border bg-surface">
+        <div class="overflow-x-auto rounded-lg border border-border bg-surface">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-elevated text-left">
@@ -58,7 +58,7 @@
                 <tbody>
                     @foreach (var member in members)
                     {
-                        <tr @key="member.Id" class="border-t border-border">
+                        <tr @key="member.Id" class="border-t border-border transition-colors hover:bg-surface">
                             <td class="px-4 py-3 text-text"><a href="@($"/members/{member.Id}")">@member.FullName</a></td>
                             <td class="px-4 py-3 text-text-muted"><code>@member.Id</code></td>
                             <td class="px-4 py-3 text-text">
