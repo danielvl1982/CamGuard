@@ -92,9 +92,17 @@ record. The user asked for an incident list as the next task (session 2026-09-27
   (+Enrollment.Domain ref). *Incident:* hosted-service test failed first
   (manual ServiceCollection lacked the new sink) — fixed with
   `Mock.Of<IIncidentSink>()`.
-- [ ] **T4 — Manual report form + `/incidents` list page** — operator form
-  (kind + note) + list newest-first with kind badge + member link. *Route:*
-  delegated.
+- [ ] **T4 — Manual report form + `/incidents` list page** — DONE 2026-09-28:
+  `Incidents.razor` (`/incidents`, InteractiveServer, short-scope pattern per
+  Members.razor): manual form (Kind select default ManualNote + Note) writing
+  via `IIncidentRepository.SaveAsync`, then list newest-first (limit 100) with
+  UTC date/time, kind badge, note/snapshot, member link. Nav link added in
+  `MainLayout.razor`; Tailwind one-shot rebuild (+3 utilities in app.css).
+  *Acceptance:* build 0 errors; full tests 174/174; smoke `/incidents` → 200,
+  server stopped after (port 5203 free, no stale locks).
+  *Route:* direct inline (delegation transport unavailable; 1 new page + 1
+  mechanical nav edit). *Evidence:* `Incidents.razor`, `MainLayout.razor`,
+  `wwwroot/app.css`; smoke 200 on :5203.
 - [ ] **T5 — Verification & closure** — build + full tests + smoke, final
   commit(s), evidence refresh. *Route:* inline.
 
