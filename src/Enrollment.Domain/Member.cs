@@ -8,12 +8,13 @@ namespace Enrollment.Domain;
 /// </summary>
 public sealed class Member : Entity<MemberId>
 {
-    private Member(MemberId id, string fullName, FaceEmbedding embedding, bool isAnnulled)
+    private Member(MemberId id, string fullName, FaceEmbedding embedding, bool isAnnulled, RoleId? roleId)
     {
         Id = id;
         FullName = fullName;
         Embedding = embedding;
         IsAnnulled = isAnnulled;
+        RoleId = roleId;
     }
 
     public string FullName { get; private set; }
@@ -25,6 +26,12 @@ public sealed class Member : Entity<MemberId>
     /// the directory list and excluded from recognition (OD1).
     /// </summary>
     public bool IsAnnulled { get; private set; }
+
+    /// <summary>Role that selects this member's notification channels; <c>null</c> when unassigned.</summary>
+    public RoleId? RoleId { get; private set; }
+
+    /// <summary>Assigns the member to a role, or clears the assignment with <c>null</c>.</summary>
+    public void AssignRole(RoleId? roleId) => RoleId = roleId;
 
     /// <summary>Soft-deletes the member. Idempotent — re-annulling changes nothing.</summary>
     public void Annul() => IsAnnulled = true;
@@ -49,12 +56,12 @@ public sealed class Member : Entity<MemberId>
     /// <paramref name="isAnnulled"/> defaults to <c>false</c> so callers reading
     /// pre-annulment rows (no persisted flag) rehydrate as non-annulled.
     /// </summary>
-    public static Member Rehydrate(MemberId id, string fullName, FaceEmbedding embedding, bool isAnnulled = false)
+    public static Member Rehydrate(MemberId id, string fullName, FaceEmbedding embedding, bool isAnnulled = false, RoleId? roleId = null)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(embedding);
         ArgumentException.ThrowIfNullOrWhiteSpace(fullName);
-        return new Member(id, fullName, embedding, isAnnulled);
+        return new Member(id, fullName, embedding, isAnnulled, roleId);
     }
 
     /// <summary>Enrolls a member from identity data and one already-validated face embedding.</summary>
@@ -68,7 +75,7 @@ public sealed class Member : Entity<MemberId>
             return Result.Failure<Member, MemberError>(MemberError.EmptyFullName);
         }
 
-        var member = new Member(id, fullName, embedding, isAnnulled: false);
+        var member = new Member(id, fullName, embedding, isAnnulled: false, roleId: null);
 
         return Result.Success<Member, MemberError>(member);
     }

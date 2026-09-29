@@ -76,12 +76,14 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
         }
 
         await _collection.EnsureCollectionExistsAsync(cancellationToken).ConfigureAwait(false);
-        await EnsureAnnulledColumnAsync(cancellationToken).ConfigureAwait(false);
+        await EnsureColumnAsync("IsAnnulled", "INTEGER NOT NULL DEFAULT 0", cancellationToken).ConfigureAwait(false);
+        // Nullable: existing members simply have no role until one is assigned.
+        await EnsureColumnAsync("RoleId", "TEXT NULL", cancellationToken).ConfigureAwait(false);
 
         _schemaEnsured = true;
     }
 
-    private async Task EnsureAnnulledColumnAsync(CancellationToken cancellationToken)
+    private async Task EnsureColumnAsync(string columnName, string columnDefinition, CancellationToken cancellationToken)
     {
         // Identifiers cannot be parameterized — quote the configured collection name
         // (it is the physical table name, verified empirically) and escape quotes.
@@ -96,7 +98,7 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
 
         await using (var probe = connection.CreateCommand())
         {
-            probe.CommandText = $"SELECT COUNT(*) FROM pragma_table_info({pragmaTableArg}) WHERE name = 'IsAnnulled'";
+            probe.CommandText = $"SELECT COUNT(*) FROM pragma_table_info({pragmaTableArg}) WHERE name = '{columnName}'";
             var exists = Convert.ToInt32(await probe.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) > 0;
             if (exists)
             {
@@ -106,7 +108,7 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
 
         await using (var alter = connection.CreateCommand())
         {
-            alter.CommandText = $"ALTER TABLE {quotedTable} ADD COLUMN \"IsAnnulled\" INTEGER NOT NULL DEFAULT 0";
+            alter.CommandText = $"ALTER TABLE {quotedTable} ADD COLUMN \"{columnName}\" {columnDefinition}";
             try
             {
                 await alter.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
@@ -151,8 +153,29 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
         }
 
         var current = MemberVectorRecordMapper.ToMember(record);
-        var updated = Member.Rehydrate(current.Id, current.FullName, current.Embedding, isAnnulled);
+        var updated = Member.Rehydrate(current.Id, current.FullName, current.Embedding, isAnnulled, current.RoleId);
         await _collection.UpsertAsync(MemberVectorRecordMapper.FromMember(updated), cancellationToken);
+    }
+
+    public async Task SetRoleAsync(MemberId id, RoleId? roleId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+
+        using var activity = _activitySource.StartActivity("Enrollment.VectorStore.SetRole");
+
+        await EnsureSchemaAsync(cancellationToken);
+
+        // Vectors must be materialized so the re-upsert preserves the existing embedding.
+        var retrieval = new RecordRetrievalOptions { IncludeVectors = true };
+        var record = await _collection.GetAsync(id.Value.ToString(), retrieval, cancellationToken).ConfigureAwait(false);
+        if (record is null)
+        {
+            throw new KeyNotFoundException($"No enrolled member with id '{id.Value}'.");
+        }
+
+        var member = MemberVectorRecordMapper.ToMember(record);
+        member.AssignRole(roleId);
+        await _collection.UpsertAsync(MemberVectorRecordMapper.FromMember(member), cancellationToken);
     }
 
     public async Task RenameAsync(MemberId id, string fullName, CancellationToken cancellationToken)
