@@ -315,7 +315,7 @@
     private bool roleNoticeIsError;
 
     private string CurrentRoleName =>
-        member?.RoleId is { } roleId ? roles.FirstOrDefault(r => r.Id.Equals(roleId))?.Name ?? "unknown role" : "none";
+        member?.RoleId is { } roleId ? roles.FirstOrDefault(r => r.Id.Equals(roleId))?.Name ?? "Unknown role" : "none";
 
     protected override async Task OnParametersSetAsync() => await LoadAsync();
 

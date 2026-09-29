@@ -136,8 +136,12 @@
         }
     }
 
+    // "—" means no role assigned; a RoleId that no longer resolves is called out so it
+    // reads the same as on the detail page instead of looking like an unassigned member.
     private string RoleName(Member member) =>
-        member.RoleId is not null && roleNames.TryGetValue(member.RoleId, out var name) ? name : "—";
+        member.RoleId is not { } roleId ? "—"
+        : roleNames.TryGetValue(roleId, out var name) ? name
+        : "Unknown role";
 
     private void ArmAnnul(Member member)
     {
