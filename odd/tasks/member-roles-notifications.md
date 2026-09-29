@@ -38,5 +38,10 @@ T1 done. Slice 1 = T1 (~250 changed lines + new files).
 - Review T1 (range base..HEAD, medium risk, 491 lines): consent granted, review-reliability approved, acknowledgement burned (lineage review-ddfd60d0cafe0b3f). Boundary advances to the T1 slice head.
 - Non-blocking advisory findings (follow-ups, not reopened): (1) rename uniqueness check is check-then-act, not atomic across concurrent renames; (2) no automated test for the MemberDetail rename UI; (3) dead `Rename` failure branch in `SqliteVecMemberRepository.RenameAsync`.
 
+- T2: `dotnet test` whole solution -> Enrollment 157 passed, Monitoring 76 passed, 0 failed (parent re-run). Commit d0fa2df.
+- Review T2 (base T1 head a07ea6e, medium risk, 1394 lines, above the ~400 heuristic because roles domain+persistence+use cases+tests are one coherent behavior): consent granted, review-reliability approved, acknowledgement burned (lineage review-105dc9fc42f692dc).
+- Non-blocking advisory findings (follow-ups): create/update role race can surface a raw SqliteException on the UNIQUE name (handlers check-then-act); delete role can race with a concurrent assignment (dangling RoleId); rename-preserves-role test coverage is weak; `Role` does not validate enum values in channels.
+- Stale: a consent granted for candidate main..HEAD (target ed569cdb...) was never executed; its invocation became invalid once T2 files appeared. Not a review record.
+
 ## Next step
-T2 (roles persistence + domain) on slice branch `feat/member-roles-t2-roles`, stacked on T1.
+T3 (default notification channels) on slice branch `feat/member-roles-t3-default-channels`.
