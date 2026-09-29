@@ -39,6 +39,12 @@ public sealed class VectorStoreOptions
     /// <summary>Name of the plain SQLite table holding each role's notification channels.</summary>
     public string RoleChannelsTableName { get; set; } = "role_channels";
 
+    /// <summary>Name of the plain SQLite table holding the default notification channels (member-roles-notifications T3).</summary>
+    public string DefaultChannelsTableName { get; set; } = "notification_default_channels";
+
+    /// <summary>Name of the plain SQLite key/value table whose marker row tells "stored empty" from "never stored".</summary>
+    public string NotificationSettingsTableName { get; set; } = "notification_settings";
+
     /// <summary>
     /// Cosine-DISTANCE threshold for the cross-member duplicate-face gate (member-crud
     /// T3, OD2): a candidate embedding whose nearest stored image of ANOTHER member is
