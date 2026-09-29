@@ -33,7 +33,7 @@ Make role management robust under concurrent use and fill the test gaps the nati
 - `dotnet test` green (baseline: Enrollment 170, Monitoring 85).
 
 ## Progress
-R1 and R2 committed (bf4bd15). Native review round: `correction_required` on a real CRITICAL finding (clearing a role with `SetRoleAsync(id, null)` threw 'no such table' when the roles table had never been created, because the conditional UPDATE always named it). One bounded correction (plan 30 lines) committed as 0232ec4 with a new regression test that fails without the fix (proved by stashing the fix) and passes with it. Targeted validation approved; acknowledgement burned (lineage review-b21c080996bc438b). Pending: PR and merge to `main`.
+R1 and R2 committed (bf4bd15). Native review round: `correction_required` on a real CRITICAL finding (clearing a role with `SetRoleAsync(id, null)` threw 'no such table' when the roles table had never been created, because the conditional UPDATE always named it). One bounded correction (plan 30 lines) committed as 0232ec4 with a new regression test that fails without the fix (proved by stashing the fix) and passes with it. Targeted validation approved; acknowledgement burned (lineage review-b21c080996bc438b). Delivered: PR #12 merged into `main` (merge commit 1eb7cbf, 2026-09-29), branch deleted; `main` re-tested at Enrollment 186 / Monitoring 86, 0 failed.
 
 ## Verification evidence
 - `dotnet test` whole solution (parent re-run) after the correction: Enrollment 186 passed, Monitoring 86 passed, 0 failed (baseline 170 / 85). The writer re-ran the three race tests 5 times, all green.
@@ -48,5 +48,11 @@ R1 and R2 committed (bf4bd15). Native review round: `correction_required` on a r
 - Create/Update handlers map any `RoleError` (including `InvalidChannel`) to their existing `InvalidName`; the UI cannot produce an undefined channel.
 - `DeleteAsync` and `IsInUseAsync` remain on `IRoleRepository`; `DeleteAsync` has no production caller now.
 
+## Pending task (blocked, noted for later)
+- [ ] R3 Smoke test of the notification routing against a real ntfy topic and a real SMTP server: one alert of each kind (recognized member with a Push role, with an Email role, with a role without channels; denied and unknown using the default channels; default set stored empty).
+  - **Blocked:** no ntfy topic or SMTP service is contracted yet, so there is no destination to send to. Until then the routing is covered by unit tests only, never exercised end to end.
+  - To unblock, the user provides: an ntfy base URL and a disposable topic, and an SMTP host, port, sender and recipient. Credentials come from the user and must not be committed (use environment variables or user-secrets).
+  - Not started; no code needed unless the smoke test finds a defect.
+
 ## Next step
-Open PR to `main` and merge; then task 2 (smoke test against real ntfy/SMTP) once the user names a destination.
+R3 below is blocked; nothing else is pending for this feature.
