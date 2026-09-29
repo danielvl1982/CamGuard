@@ -18,7 +18,7 @@ Allow renaming a member, and assign each member a "family" role. A role defines 
 
 ## Tasks
 - [x] T1 Rename member: `Member.Rename`, repository update, `RenameMemberCommand` + handler, UI on MemberDetail. Route: delegated writer (2+ files). Commit 2b0de8b on `feat/member-roles-t1-rename`. Rename rejects a name held by another member (annulled included); same-name is a no-op success.
-- [ ] T2 Roles persistence + domain: `Role` (name, channels), tables `roles`, `role_channels`, `members.RoleId` column, `IRoleRepository`, CRUD + assign-role commands.
+- [x] T2 Roles persistence + domain: `Role` (name, channels), tables `roles`, `role_channels`, `members.RoleId` column, `IRoleRepository`, CRUD + assign-role commands. Route: delegated writer. Branch `feat/member-roles-t2-roles`. Single `UpdateRoleCommand` (name + channels). Annulled members count as holding a role when deleting.
 - [ ] T3 Default notification channels: table + repository + commands.
 - [ ] T4 Monitoring routing: PublicApi exposes channels for member/default; channel-selecting notification service; tests.
 - [ ] T5 UI: Roles page (CRUD + channels), role selector on Members/MemberDetail, default-channels settings.
