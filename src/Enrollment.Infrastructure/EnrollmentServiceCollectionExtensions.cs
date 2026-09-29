@@ -62,6 +62,7 @@ public static class EnrollmentServiceCollectionExtensions
                 sp.GetRequiredService<IOptions<VectorStoreOptions>>().Value.DuplicateFaceDistanceThreshold));
         services.TryAddScoped<RegisterMemberCommandHandler>();
         services.TryAddScoped<AddMemberImagesCommandHandler>();
+        services.TryAddScoped<RenameMemberCommandHandler>();
         services.TryAddScoped<EnrollmentService>();
         services.TryAddScoped<QueryByEmbeddingQueryHandler>();
         services.TryAddScoped<IMemberDirectoryReader, MemberDirectoryReader>();

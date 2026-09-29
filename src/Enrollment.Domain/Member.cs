@@ -16,7 +16,7 @@ public sealed class Member : Entity<MemberId>
         IsAnnulled = isAnnulled;
     }
 
-    public string FullName { get; }
+    public string FullName { get; private set; }
 
     public FaceEmbedding Embedding { get; }
 
@@ -28,6 +28,21 @@ public sealed class Member : Entity<MemberId>
 
     /// <summary>Soft-deletes the member. Idempotent — re-annulling changes nothing.</summary>
     public void Annul() => IsAnnulled = true;
+
+    /// <summary>
+    /// Renames the member. The name is trimmed; blank names are rejected with
+    /// <see cref="MemberError.EmptyFullName"/> (same rule as <see cref="Enroll"/>) and leave the member unchanged.
+    /// </summary>
+    public UnitResult<MemberError> Rename(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            return UnitResult.Failure(MemberError.EmptyFullName);
+        }
+
+        FullName = fullName.Trim();
+        return UnitResult.Success<MemberError>();
+    }
 
     /// <summary>
     /// Reconstitutes a member from persistence without raising domain events.
