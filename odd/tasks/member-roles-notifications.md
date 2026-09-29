@@ -20,7 +20,7 @@ Allow renaming a member, and assign each member a "family" role. A role defines 
 - [x] T1 Rename member: `Member.Rename`, repository update, `RenameMemberCommand` + handler, UI on MemberDetail. Route: delegated writer (2+ files). Commit 2b0de8b on `feat/member-roles-t1-rename`. Rename rejects a name held by another member (annulled included); same-name is a no-op success.
 - [x] T2 Roles persistence + domain: `Role` (name, channels), tables `roles`, `role_channels`, `members.RoleId` column, `IRoleRepository`, CRUD + assign-role commands. Route: delegated writer. Branch `feat/member-roles-t2-roles`. Single `UpdateRoleCommand` (name + channels). Annulled members count as holding a role when deleting.
 - [x] T3 Default notification channels: table + repository + commands. Route: delegated writer. Commit 3834b55 on `feat/member-roles-t3-default-channels`. Assessed medium, 339 lines since boundary 048ba18: `under_budget`, review pending in slice (accumulates with T4). Unset -> both channels; stored empty -> none (marker row in `notification_settings`).
-- [ ] T4 Monitoring routing: PublicApi exposes channels for member/default; channel-selecting notification service; tests.
+- [x] T4 Monitoring routing: PublicApi exposes channels for member/default; channel-selecting notification service; tests. Route: delegated writer. Branch `feat/member-roles-t4-routing`. Recognized = Outcome Allowed with MemberId; Denied/HumanVerificationRequired use defaults. No-role -> defaults implemented in `NotificationRoutingReader`. CompositeNotificationService extended in place (scoped, no captive dependency).
 - [ ] T5 UI: Roles page (CRUD + channels), role selector on Members/MemberDetail, default-channels settings.
 
 ## Acceptance
