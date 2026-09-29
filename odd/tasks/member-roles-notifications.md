@@ -52,8 +52,10 @@ T1 done. Slice 1 = T1 (~250 changed lines + new files).
 
 - T5: `dotnet test` whole solution -> Enrollment 170 passed, Monitoring 85 passed, 0 failed. Real-browser verification (Playwright, scratch DB, lena.jpg face from outside repo): roles create/validate/edit/delete-confirm, default channels (never-stored=both, stored-empty distinct), assign/unassign role, role-in-use error, Members Role column, T1 rename regression: all PASS; no console errors.
 
+- Review T5 (base d68ba8a, medium, 703 lines): consent granted, review-reliability ran and ended `escalated` (cause `unknown_causality`, finding R3-1 unresolved; refuter corroborated R3-2 at Members.razor:139-140 and MemberDetail.razor:317-318). Native STATUS is terminal (`native_stop_required`), no correction offered, no acknowledgement possible; the finding texts are not exposed by the CLI. Observed by reading those lines: a dangling RoleId renders '—' on the Members list but 'unknown role' on MemberDetail (inconsistent). T5 is therefore NOT approved by review; the decision on how to proceed is pending with the user.
+
 ## Assumption to confirm (T4)
 Recognized member with NO role assigned -> default channels (keeps today's behavior on upgrade). Role with zero channels -> no notification.
 
 ## Next step
-T5 (UI: roles page, role selector on members, default-channels settings) on `feat/member-roles-t5-ui`; review against base d68ba8a.
+Decide how to handle the escalated T5 review; then open the chain of PRs (T1..T5 into `feat/member-roles-notifications`).
