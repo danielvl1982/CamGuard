@@ -92,6 +92,19 @@ public sealed class MemberRoleTests : IDisposable
     }
 
     [Fact]
+    public async Task SetRoleAsync_null_succeeds_when_the_roles_table_was_never_created()
+    {
+        // No role was ever saved, so the roles table does not exist yet: clearing must not touch it.
+        var member = NewMember();
+        await _repository.SaveAsync(member, CancellationToken.None);
+
+        var result = await _repository.SetRoleAsync(member.Id, null, CancellationToken.None);
+
+        Assert.Equal(RoleAssignmentResult.Assigned, result);
+        Assert.Null((await _repository.FindByIdAsync(member.Id, CancellationToken.None))!.RoleId);
+    }
+
+    [Fact]
     public async Task SetRoleAsync_throws_for_unknown_member()
     {
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>

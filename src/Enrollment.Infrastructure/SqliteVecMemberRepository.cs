@@ -175,10 +175,14 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
+        // Clearing a role must not name the roles table at all: SQLite resolves every table in the
+        // statement at prepare time, and that table only exists once a role has been saved.
+        var roleMustExist = roleId is null
+            ? string.Empty
+            : $" AND EXISTS (SELECT 1 FROM {Quote(_rolesTableName)} WHERE \"Id\" = @role)";
+
         await using var update = connection.CreateCommand();
-        update.CommandText =
-            $"UPDATE {quotedMembers} SET \"RoleId\" = @role WHERE \"Id\" = @id " +
-            $"AND (@role IS NULL OR EXISTS (SELECT 1 FROM {Quote(_rolesTableName)} WHERE \"Id\" = @role))";
+        update.CommandText = $"UPDATE {quotedMembers} SET \"RoleId\" = @role WHERE \"Id\" = @id{roleMustExist}";
         update.Parameters.AddWithValue("@id", id.Value.ToString());
         update.Parameters.AddWithValue("@role", roleId is null ? DBNull.Value : roleId.Value.ToString());
 
