@@ -1,4 +1,5 @@
 using Common;
+using Enrollment.PublicApi;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -70,8 +71,8 @@ public static class MonitoringServiceCollectionExtensions
         services.TryAddScoped<IImageArchiver, FileSystemImageArchiver>();
 
         // Development gets the logging-only placeholder so local testing never spams a real
-        // phone/inbox; every other environment gets the real ntfy + email channels fanned out
-        // through CompositeNotificationService (still isolated per channel — see its own comment).
+        // phone/inbox; every other environment gets the real ntfy + email channels, routed per alert
+        // through CompositeNotificationService (role/default channels, still isolated per channel).
         services.AddHttpClient<NtfyNotificationService>();
         services.TryAddScoped<EmailNotificationService>();
         if (environment.IsDevelopment())
@@ -93,7 +94,11 @@ public static class MonitoringServiceCollectionExtensions
                 .Validate(o => !string.IsNullOrWhiteSpace(o.ToAddress), "ToAddress must not be empty.");
 
             services.TryAddScoped<INotificationService>(sp => new CompositeNotificationService(
-                [sp.GetRequiredService<NtfyNotificationService>(), sp.GetRequiredService<EmailNotificationService>()],
+                [
+                    new NotificationChannelRegistration(NotificationChannelKind.Push, sp.GetRequiredService<NtfyNotificationService>()),
+                    new NotificationChannelRegistration(NotificationChannelKind.Email, sp.GetRequiredService<EmailNotificationService>()),
+                ],
+                sp.GetRequiredService<INotificationRoutingReader>(),
                 sp.GetRequiredService<ILogger<CompositeNotificationService>>()));
         }
 

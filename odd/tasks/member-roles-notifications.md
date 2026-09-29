@@ -20,7 +20,7 @@ Allow renaming a member, and assign each member a "family" role. A role defines 
 - [x] T1 Rename member: `Member.Rename`, repository update, `RenameMemberCommand` + handler, UI on MemberDetail. Route: delegated writer (2+ files). Commit 2b0de8b on `feat/member-roles-t1-rename`. Rename rejects a name held by another member (annulled included); same-name is a no-op success.
 - [x] T2 Roles persistence + domain: `Role` (name, channels), tables `roles`, `role_channels`, `members.RoleId` column, `IRoleRepository`, CRUD + assign-role commands. Route: delegated writer. Branch `feat/member-roles-t2-roles`. Single `UpdateRoleCommand` (name + channels). Annulled members count as holding a role when deleting.
 - [x] T3 Default notification channels: table + repository + commands. Route: delegated writer. Commit 3834b55 on `feat/member-roles-t3-default-channels`. Assessed medium, 339 lines since boundary 048ba18: `under_budget`, review pending in slice (accumulates with T4). Unset -> both channels; stored empty -> none (marker row in `notification_settings`).
-- [ ] T4 Monitoring routing: PublicApi exposes channels for member/default; channel-selecting notification service; tests.
+- [x] T4 Monitoring routing: PublicApi exposes channels for member/default; channel-selecting notification service; tests. Route: delegated writer. Branch `feat/member-roles-t4-routing`. Recognized = Outcome Allowed with MemberId; Denied/HumanVerificationRequired use defaults. No-role -> defaults implemented in `NotificationRoutingReader`. CompositeNotificationService extended in place (scoped, no captive dependency).
 - [ ] T5 UI: Roles page (CRUD + channels), role selector on Members/MemberDetail, default-channels settings.
 
 ## Acceptance
@@ -46,8 +46,12 @@ T1 done. Slice 1 = T1 (~250 changed lines + new files).
 - T3: `dotnet test` whole solution -> Enrollment 165 passed, Monitoring 76 passed, 0 failed (parent re-run).
 - Stop-hook offered a START for `main..HEAD` (accumulated branch); not run: T1/T2 already reviewed per slice, ODD candidate is a slice, and new untracked files would invalidate it. No consent asked, no record created. Reviewed boundary stays 048ba18.
 
+- T4: `dotnet test` whole solution -> Monitoring 85 passed, Enrollment 170 passed, 0 failed (parent re-run). Commit 9a56f01. Not run against real Development/Production hosts.
+- Review T3+T4 (base 048ba18, medium, 780 lines): consent granted, review-reliability approved, acknowledgement burned (lineage review-fd7fac9c2f7db053). Reviewed boundary is now d68ba8a.
+- Non-blocking advisory findings (follow-ups, all test-coverage): Allowed + null MemberId not tested in the composite; `Guid.Empty` branch of `NotificationRoutingReader` untested; reject-then-unchanged not tested against a prior custom default set; Monitoring hard-depends on `INotificationRoutingReader` (AddEnrollment) with no descriptive failure if a host omits it.
+
 ## Assumption to confirm (T4)
 Recognized member with NO role assigned -> default channels (keeps today's behavior on upgrade). Role with zero channels -> no notification.
 
 ## Next step
-T4 (Monitoring routing) on `feat/member-roles-t4-routing`; review the T3+T4 slice against base 048ba18 once committed.
+T5 (UI: roles page, role selector on members, default-channels settings) on `feat/member-roles-t5-ui`; review against base d68ba8a.

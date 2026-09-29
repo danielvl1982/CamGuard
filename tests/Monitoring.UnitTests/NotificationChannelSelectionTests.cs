@@ -28,6 +28,14 @@ public sealed class NotificationChannelSelectionTests
         })
         .Build();
 
+    // Enrollment normally supplies the routing reader (AddEnrollment); stub it here.
+    private static ServiceCollection ServicesWithRoutingReader()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped(_ => new Moq.Mock<Enrollment.PublicApi.INotificationRoutingReader>().Object);
+        return services;
+    }
+
     [Fact]
     public void Development_environment_resolves_the_logging_placeholder()
     {
@@ -43,7 +51,7 @@ public sealed class NotificationChannelSelectionTests
     [Fact]
     public void Non_development_environment_resolves_the_composite_of_real_channels()
     {
-        var services = new ServiceCollection();
+        var services = ServicesWithRoutingReader();
         services.AddMonitoring(ConfiguredNotificationChannelsConfiguration(), new FakeHostEnvironment(Environments.Production));
         using var provider = services.BuildServiceProvider();
 
@@ -69,7 +77,7 @@ public sealed class NotificationChannelSelectionTests
         };
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
 
-        var services = new ServiceCollection();
+        var services = ServicesWithRoutingReader();
         services.AddMonitoring(configuration, new FakeHostEnvironment(Environments.Production));
         using var provider = services.BuildServiceProvider();
 
