@@ -1,6 +1,7 @@
 @page "/members"
 @rendermode InteractiveServer
 
+@using Enrollment.Application
 @using Enrollment.Domain
 @inject IServiceScopeFactory ScopeFactory
 @inject ILogger<Members> Logger
@@ -51,6 +52,7 @@
                 <thead>
                     <tr class="bg-elevated text-left">
                         <th scope="col" class="px-4 py-3 font-semibold text-text">Full name</th>
+                        <th scope="col" class="px-4 py-3 font-semibold text-text">Role</th>
                         <th scope="col" class="px-4 py-3 font-semibold text-text">Member ID</th>
                         <th scope="col" class="px-4 py-3 font-semibold text-text">Actions</th>
                     </tr>
@@ -60,6 +62,7 @@
                     {
                         <tr @key="member.Id" class="border-t border-border transition-colors hover:bg-surface">
                             <td class="px-4 py-3 text-text"><a href="@($"/members/{member.Id}")">@member.FullName</a></td>
+                            <td class="px-4 py-3 text-text-muted">@RoleName(member)</td>
                             <td class="px-4 py-3 text-text-muted"><code>@member.Id</code></td>
                             <td class="px-4 py-3 text-text">
                                 @if (pendingAnnulId is not null && pendingAnnulId.Equals(member.Id))
@@ -98,6 +101,7 @@
 
 @code {
     private IReadOnlyList<Member>? members;
+    private Dictionary<RoleId, string> roleNames = [];
     private string? loadError;
     private bool isLoading = true;
     private MemberId? pendingAnnulId;
@@ -114,6 +118,11 @@
             using var scope = ScopeFactory.CreateScope();
             var repository = scope.ServiceProvider.GetRequiredService<IMemberVectorRepository>();
             members = await repository.ListAllAsync(CancellationToken.None);
+
+            // One query for all roles; rows resolve names from this map (no N+1).
+            var listRoles = scope.ServiceProvider.GetRequiredService<ListRolesQueryHandler>();
+            var roles = await listRoles.HandleAsync(new ListRolesQuery(), CancellationToken.None);
+            roleNames = roles.ToDictionary(role => role.Id, role => role.Name);
         }
         catch (Exception ex)
         {
@@ -126,6 +135,13 @@
             isLoading = false;
         }
     }
+
+    // "—" means no role assigned; a RoleId that no longer resolves is called out so it
+    // reads the same as on the detail page instead of looking like an unassigned member.
+    private string RoleName(Member member) =>
+        member.RoleId is not { } roleId ? "—"
+        : roleNames.TryGetValue(roleId, out var name) ? name
+        : "Unknown role";
 
     private void ArmAnnul(Member member)
     {

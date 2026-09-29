@@ -18,6 +18,19 @@ public interface IMemberVectorRepository
     Task SetAnnulledAsync(MemberId id, bool isAnnulled, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Changes an enrolled member's <c>FullName</c>, preserving its embedding and annulled flag.
+    /// Throws <see cref="KeyNotFoundException"/> when no member with <paramref name="id"/> exists and
+    /// <see cref="ArgumentException"/> when <paramref name="fullName"/> is blank.
+    /// </summary>
+    Task RenameAsync(MemberId id, string fullName, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Assigns the member to a role (or clears it with <c>null</c>), preserving its embedding, name and
+    /// annulled flag. Throws <see cref="KeyNotFoundException"/> when no member with <paramref name="id"/> exists.
+    /// </summary>
+    Task SetRoleAsync(MemberId id, RoleId? roleId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Returns the closest <b>non-annulled</b> enrolled member and its similarity score,
     /// or <c>null</c> when none are enrolled (or all are annulled). Annulled members are
     /// never returned (OD1: recognition must not grant them access).

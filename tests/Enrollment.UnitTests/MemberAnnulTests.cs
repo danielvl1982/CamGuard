@@ -103,6 +103,47 @@ public sealed class MemberAnnulTests : IDisposable
     }
 
     [Fact]
+    public async Task RenameAsync_persists_new_name_and_preserves_embedding_and_annulled_flag()
+    {
+        // GIVEN an annulled member with a distinctive embedding
+        var embedding = ValidEmbedding(0.3f, 0.4f);
+        var member = Member.Enroll(MemberId.New(), "Ada Lovelace", embedding).Value;
+        await _repository.SaveAsync(member, CancellationToken.None);
+        await _repository.SetAnnulledAsync(member.Id, true, CancellationToken.None);
+
+        // WHEN renamed via the repository
+        await _repository.RenameAsync(member.Id, "Grace Hopper", CancellationToken.None);
+
+        // THEN the name changed, embedding and annulled flag are untouched, and the old name is gone
+        var renamed = await _repository.FindByIdAsync(member.Id, CancellationToken.None);
+        Assert.NotNull(renamed);
+        Assert.Equal("Grace Hopper", renamed!.FullName);
+        Assert.True(renamed.IsAnnulled);
+        Assert.Equal(embedding.Vector.ToArray(), renamed.Embedding.Vector.ToArray());
+        Assert.Null(await _repository.FindByFullNameAsync("Ada Lovelace", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RenameAsync_unknown_id_throws_KeyNotFoundException()
+    {
+        await Assert.ThrowsAsync<KeyNotFoundException>(
+            () => _repository.RenameAsync(MemberId.New(), "Grace Hopper", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RenameAsync_blank_name_throws_and_keeps_stored_name()
+    {
+        var member = Member.Enroll(MemberId.New(), "Ada Lovelace", ValidEmbedding()).Value;
+        await _repository.SaveAsync(member, CancellationToken.None);
+
+        await Assert.ThrowsAnyAsync<ArgumentException>(
+            () => _repository.RenameAsync(member.Id, "  ", CancellationToken.None));
+
+        var stored = await _repository.FindByIdAsync(member.Id, CancellationToken.None);
+        Assert.Equal("Ada Lovelace", stored!.FullName);
+    }
+
+    [Fact]
     public async Task ListAllAsync_excludes_annulled_members_but_keeps_active_ones()
     {
         // GIVEN one active and one annulled member

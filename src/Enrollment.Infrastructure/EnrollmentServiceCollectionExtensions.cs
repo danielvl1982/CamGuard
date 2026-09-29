@@ -57,14 +57,25 @@ public static class EnrollmentServiceCollectionExtensions
         services.TryAddScoped<IMemberVectorRepository, SqliteVecMemberRepository>();
         services.TryAddScoped<IMemberImageRepository, SqliteVecMemberImageRepository>();
         services.TryAddScoped<IIncidentRepository, SqliteIncidentRepository>();
+        services.TryAddScoped<IRoleRepository, SqliteRoleRepository>();
+        services.TryAddScoped<INotificationSettingsRepository, SqliteNotificationSettingsRepository>();
         services.TryAddScoped<IMemberImageDuplicateValidator>(sp =>
             new MemberImageDuplicateValidator(
                 sp.GetRequiredService<IOptions<VectorStoreOptions>>().Value.DuplicateFaceDistanceThreshold));
         services.TryAddScoped<RegisterMemberCommandHandler>();
         services.TryAddScoped<AddMemberImagesCommandHandler>();
+        services.TryAddScoped<RenameMemberCommandHandler>();
+        services.TryAddScoped<CreateRoleCommandHandler>();
+        services.TryAddScoped<UpdateRoleCommandHandler>();
+        services.TryAddScoped<DeleteRoleCommandHandler>();
+        services.TryAddScoped<ListRolesQueryHandler>();
+        services.TryAddScoped<GetDefaultChannelsQueryHandler>();
+        services.TryAddScoped<SetDefaultChannelsCommandHandler>();
+        services.TryAddScoped<AssignMemberRoleCommandHandler>();
         services.TryAddScoped<EnrollmentService>();
         services.TryAddScoped<QueryByEmbeddingQueryHandler>();
         services.TryAddScoped<IMemberDirectoryReader, MemberDirectoryReader>();
+        services.TryAddScoped<INotificationRoutingReader, NotificationRoutingReader>();
 
         return services;
     }
