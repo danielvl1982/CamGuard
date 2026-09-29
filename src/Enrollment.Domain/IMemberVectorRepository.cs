@@ -29,7 +29,8 @@ public interface IMemberVectorRepository
     /// annulled flag. Throws <see cref="KeyNotFoundException"/> when no member with <paramref name="id"/> exists.
     /// The write is conditional on the role still existing (checked in the same statement), so it never
     /// stores a dangling id: a role deleted in the meantime yields <see cref="RoleAssignmentResult.RoleNotFound"/>
-    /// and changes nothing.
+    /// and changes nothing. Caveat: <c>RenameAsync</c> and <c>SetAnnulledAsync</c> rewrite the whole record, so
+    /// a role change made between their read and their write can be reverted by them (known, not covered here).
     /// </summary>
     Task<RoleAssignmentResult> SetRoleAsync(MemberId id, RoleId? roleId, CancellationToken cancellationToken);
 

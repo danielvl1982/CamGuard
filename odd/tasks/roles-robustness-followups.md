@@ -33,11 +33,12 @@ Make role management robust under concurrent use and fill the test gaps the nati
 - `dotnet test` green (baseline: Enrollment 170, Monitoring 85).
 
 ## Progress
-R1 and R2 committed (bf4bd15) on `fix/roles-robustness`. Pending: native review, PR, merge.
+R1 and R2 committed (bf4bd15). Native review round: `correction_required` on a real CRITICAL finding (clearing a role with `SetRoleAsync(id, null)` threw 'no such table' when the roles table had never been created, because the conditional UPDATE always named it). One bounded correction (plan 30 lines) committed as 0232ec4 with a new regression test that fails without the fix (proved by stashing the fix) and passes with it. Targeted validation approved; acknowledgement burned (lineage review-b21c080996bc438b). Pending: PR and merge to `main`.
 
 ## Verification evidence
-- `dotnet test` whole solution (parent re-run): Enrollment 185 passed, Monitoring 86 passed, 0 failed (baseline 170 / 85). The writer re-ran the three race tests 5 times, all green.
+- `dotnet test` whole solution (parent re-run) after the correction: Enrollment 186 passed, Monitoring 86 passed, 0 failed (baseline 170 / 85). The writer re-ran the three race tests 5 times, all green.
 - Race tests run two repositories on one SQLite file: concurrent saves, creates and renames with the same name each yield exactly one winner and one typed duplicate error.
+- Review advisories after the correction (non-blocking): `DeleteIfUnusedAsync` classifies InUse/NotFound after the delete in a separate read (result classification can be stale, no data risk); `UpdateRoleCommand` `InvalidChannel` mapping is untested; `RenameAsync` ignores the `Rename` result (justified by the earlier blank-name guard, but implicit); the `SetRoleAsync` doc overclaimed 'never dangling' (fixed: it now states the rename/annul caveat).
 
 ## Known residual (not fixed here)
 `SetAnnulledAsync` and `RenameAsync` are whole-record read-modify-write. A concurrent `SetRoleAsync` between their read and their upsert is silently reverted, and this can resurrect a deleted role id: Rename reads RoleId=A; SetRoleAsync(null); DeleteIfUnused(A) succeeds; Rename upserts A back. Fix idea: make those two paths conditional column updates like `SetRoleAsync`. Needs a separate decision because it touches the vector-store write path.
@@ -48,4 +49,4 @@ R1 and R2 committed (bf4bd15) on `fix/roles-robustness`. Pending: native review,
 - `DeleteAsync` and `IsInUseAsync` remain on `IRoleRepository`; `DeleteAsync` has no production caller now.
 
 ## Next step
-Assess and review slice against base `main` (8f297b7), then PR to `main`.
+Open PR to `main` and merge; then task 2 (smoke test against real ntfy/SMTP) once the user names a destination.
