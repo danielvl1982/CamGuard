@@ -38,4 +38,30 @@ public sealed class MemberTests
         Assert.True(result.IsFailure);
         Assert.Equal(MemberError.EmptyFullName, result.Error);
     }
+
+    [Fact]
+    public void Rename_with_valid_name_trims_and_updates_full_name()
+    {
+        var member = Member.Enroll(MemberId.New(), "Ada Lovelace", ValidEmbedding()).Value;
+
+        var result = member.Rename("  Grace Hopper ");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Grace Hopper", member.FullName);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void Rename_with_blank_name_fails_and_keeps_current_name(string? fullName)
+    {
+        var member = Member.Enroll(MemberId.New(), "Ada Lovelace", ValidEmbedding()).Value;
+
+        var result = member.Rename(fullName!);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(MemberError.EmptyFullName, result.Error);
+        Assert.Equal("Ada Lovelace", member.FullName);
+    }
 }

@@ -155,6 +155,33 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
         await _collection.UpsertAsync(MemberVectorRecordMapper.FromMember(updated), cancellationToken);
     }
 
+    public async Task RenameAsync(MemberId id, string fullName, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fullName);
+
+        using var activity = _activitySource.StartActivity("Enrollment.VectorStore.Rename");
+
+        await EnsureSchemaAsync(cancellationToken);
+
+        // Vectors must be materialized so the re-upsert preserves the existing embedding.
+        var retrieval = new RecordRetrievalOptions { IncludeVectors = true };
+        var record = await _collection.GetAsync(id.Value.ToString(), retrieval, cancellationToken).ConfigureAwait(false);
+        if (record is null)
+        {
+            throw new KeyNotFoundException($"No enrolled member with id '{id.Value}'.");
+        }
+
+        var member = MemberVectorRecordMapper.ToMember(record);
+        var renamed = member.Rename(fullName);
+        if (renamed.IsFailure)
+        {
+            throw new ArgumentException("Full name must not be blank.", nameof(fullName));
+        }
+
+        await _collection.UpsertAsync(MemberVectorRecordMapper.FromMember(member), cancellationToken);
+    }
+
     public async Task<(MemberId Id, double Score)?> FindNearestAsync(FaceEmbedding query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
