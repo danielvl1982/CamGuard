@@ -46,8 +46,12 @@ T1 done. Slice 1 = T1 (~250 changed lines + new files).
 - T3: `dotnet test` whole solution -> Enrollment 165 passed, Monitoring 76 passed, 0 failed (parent re-run).
 - Stop-hook offered a START for `main..HEAD` (accumulated branch); not run: T1/T2 already reviewed per slice, ODD candidate is a slice, and new untracked files would invalidate it. No consent asked, no record created. Reviewed boundary stays 048ba18.
 
+- T4: `dotnet test` whole solution -> Monitoring 85 passed, Enrollment 170 passed, 0 failed (parent re-run). Commit 9a56f01. Not run against real Development/Production hosts.
+- Review T3+T4 (base 048ba18, medium, 780 lines): consent granted, review-reliability approved, acknowledgement burned (lineage review-fd7fac9c2f7db053). Reviewed boundary is now d68ba8a.
+- Non-blocking advisory findings (follow-ups, all test-coverage): Allowed + null MemberId not tested in the composite; `Guid.Empty` branch of `NotificationRoutingReader` untested; reject-then-unchanged not tested against a prior custom default set; Monitoring hard-depends on `INotificationRoutingReader` (AddEnrollment) with no descriptive failure if a host omits it.
+
 ## Assumption to confirm (T4)
 Recognized member with NO role assigned -> default channels (keeps today's behavior on upgrade). Role with zero channels -> no notification.
 
 ## Next step
-T4 (Monitoring routing) on `feat/member-roles-t4-routing`; review the T3+T4 slice against base 048ba18 once committed.
+T5 (UI: roles page, role selector on members, default-channels settings) on `feat/member-roles-t5-ui`; review against base d68ba8a.
