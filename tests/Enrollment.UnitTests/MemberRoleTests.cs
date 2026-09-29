@@ -18,6 +18,7 @@ public sealed class MemberRoleTests : IDisposable
 {
     private readonly string _dbPath;
     private readonly SqliteVecMemberRepository _repository;
+    private readonly SqliteRoleRepository _roles;
 
     public MemberRoleTests()
     {
@@ -28,6 +29,15 @@ public sealed class MemberRoleTests : IDisposable
             MembersCollectionName = "members_test"
         });
         _repository = new SqliteVecMemberRepository(options, new ActivitySource("Enrollment.UnitTests.MemberRole"));
+        _roles = new SqliteRoleRepository(options, new ActivitySource("Enrollment.UnitTests.MemberRole.Roles"));
+    }
+
+    /// <summary>Persists a role: assignment now only accepts roles that exist.</summary>
+    private async Task<RoleId> SaveRoleAsync(string name = "Family")
+    {
+        var role = Role.Create(RoleId.New(), name, []).Value;
+        await _roles.SaveAsync(role, CancellationToken.None);
+        return role.Id;
     }
 
     private static FaceEmbedding ValidEmbedding(float first = 0.8f)
@@ -57,10 +67,10 @@ public sealed class MemberRoleTests : IDisposable
     public async Task SetRoleAsync_persists_role_and_preserves_name_embedding_and_annulled_flag()
     {
         var member = NewMember();
-        var roleId = RoleId.New();
+        var roleId = await SaveRoleAsync();
         await _repository.SaveAsync(member, CancellationToken.None);
 
-        await _repository.SetRoleAsync(member.Id, roleId, CancellationToken.None);
+        Assert.Equal(RoleAssignmentResult.Assigned, await _repository.SetRoleAsync(member.Id, roleId, CancellationToken.None));
 
         var found = await _repository.FindByIdAsync(member.Id, CancellationToken.None);
         Assert.Equal(roleId, found!.RoleId);
@@ -74,10 +84,23 @@ public sealed class MemberRoleTests : IDisposable
     {
         var member = NewMember();
         await _repository.SaveAsync(member, CancellationToken.None);
-        await _repository.SetRoleAsync(member.Id, RoleId.New(), CancellationToken.None);
+        await _repository.SetRoleAsync(member.Id, await SaveRoleAsync(), CancellationToken.None);
 
         await _repository.SetRoleAsync(member.Id, null, CancellationToken.None);
 
+        Assert.Null((await _repository.FindByIdAsync(member.Id, CancellationToken.None))!.RoleId);
+    }
+
+    [Fact]
+    public async Task SetRoleAsync_null_succeeds_when_the_roles_table_was_never_created()
+    {
+        // No role was ever saved, so the roles table does not exist yet: clearing must not touch it.
+        var member = NewMember();
+        await _repository.SaveAsync(member, CancellationToken.None);
+
+        var result = await _repository.SetRoleAsync(member.Id, null, CancellationToken.None);
+
+        Assert.Equal(RoleAssignmentResult.Assigned, result);
         Assert.Null((await _repository.FindByIdAsync(member.Id, CancellationToken.None))!.RoleId);
     }
 
@@ -92,9 +115,9 @@ public sealed class MemberRoleTests : IDisposable
     public async Task Role_survives_rename_annul_and_restore()
     {
         var member = NewMember();
-        var roleId = RoleId.New();
-        member.AssignRole(roleId);
+        var roleId = await SaveRoleAsync();
         await _repository.SaveAsync(member, CancellationToken.None);
+        await _repository.SetRoleAsync(member.Id, roleId, CancellationToken.None);
 
         await _repository.RenameAsync(member.Id, "Grace Hopper", CancellationToken.None);
         await _repository.SetAnnulledAsync(member.Id, true, CancellationToken.None);
@@ -143,7 +166,7 @@ public sealed class MemberRoleTests : IDisposable
         var match = await _repository.FindNearestAsync(embedding, CancellationToken.None);
         Assert.Equal(id, match!.Value.Id);
 
-        var roleId = RoleId.New();
+        var roleId = await SaveRoleAsync();
         await _repository.SetRoleAsync(id, roleId, CancellationToken.None);
         Assert.Equal(roleId, (await _repository.FindByIdAsync(id, CancellationToken.None))!.RoleId);
     }

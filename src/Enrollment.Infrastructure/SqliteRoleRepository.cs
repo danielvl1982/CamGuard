@@ -17,6 +17,9 @@ namespace Enrollment.Infrastructure;
 /// </summary>
 public sealed class SqliteRoleRepository : IRoleRepository
 {
+    /// <summary>SQLITE_CONSTRAINT_UNIQUE (extended result code 2067).</summary>
+    private const int SqliteConstraintUnique = 2067;
+
     private readonly string _connectionString;
     private readonly string _rolesTable;
     private readonly string _channelsTable;
@@ -101,7 +104,15 @@ public sealed class SqliteRoleRepository : IRoleRepository
             upsert.Parameters.AddWithValue("@id", role.Id.Value.ToString());
             upsert.Parameters.AddWithValue("@name", role.Name);
             upsert.Parameters.AddWithValue("@createdAtUtc", DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture));
-            await upsert.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await upsert.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (SqliteException ex) when (ex.SqliteExtendedErrorCode == SqliteConstraintUnique)
+            {
+                // Only the Name column can collide (an Id conflict is handled by the upsert itself).
+                throw new DuplicateRoleNameException(role.Name, ex);
+            }
         }
 
         await using (var clear = connection.CreateCommand())
@@ -170,6 +181,53 @@ public sealed class SqliteRoleRepository : IRoleRepository
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<RoleDeletionResult> DeleteIfUnusedAsync(RoleId id, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+
+        using var activity = _activitySource.StartActivity("Enrollment.Roles.DeleteIfUnused");
+
+        await EnsureSchemaAsync(cancellationToken).ConfigureAwait(false);
+
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+
+        // One DELETE carries both the "unused" check and the delete, so SQLite serializes it against a
+        // concurrent assignment; the channels go with it through the ON DELETE CASCADE foreign key.
+        var unusedGuard = await MembersHaveRoleColumnAsync(connection, cancellationToken).ConfigureAwait(false)
+            ? $" AND NOT EXISTS (SELECT 1 FROM {Quote(_membersTable)} WHERE \"RoleId\" = @id)"
+            : string.Empty;
+
+        await using (var delete = connection.CreateCommand())
+        {
+            delete.CommandText = $"DELETE FROM {_rolesTable} WHERE \"Id\" = @id{unusedGuard}";
+            delete.Parameters.AddWithValue("@id", id.Value.ToString());
+            if (await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) > 0)
+            {
+                return RoleDeletionResult.Deleted;
+            }
+        }
+
+        // Nothing deleted: either the role never existed or a member holds it.
+        await using var exists = connection.CreateCommand();
+        exists.CommandText = $"SELECT EXISTS(SELECT 1 FROM {_rolesTable} WHERE \"Id\" = @id)";
+        exists.Parameters.AddWithValue("@id", id.Value.ToString());
+        return Convert.ToInt32(await exists.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture) == 1
+            ? RoleDeletionResult.InUse
+            : RoleDeletionResult.NotFound;
+    }
+
+    /// <summary>
+    /// The members table (and its RoleId column) may not exist yet on a fresh or legacy store: then nobody
+    /// can hold a role. Single-quoted literal is required by the table-valued pragma.
+    /// </summary>
+    private async Task<bool> MembersHaveRoleColumnAsync(SqliteConnection connection, CancellationToken cancellationToken)
+    {
+        await using var probe = connection.CreateCommand();
+        probe.CommandText =
+            $"SELECT COUNT(*) FROM pragma_table_info('{_membersTable.Replace("'", "''", StringComparison.Ordinal)}') WHERE name = 'RoleId'";
+        return Convert.ToInt32(await probe.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture) > 0;
+    }
+
     public async Task<bool> IsInUseAsync(RoleId id, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -180,16 +238,9 @@ public sealed class SqliteRoleRepository : IRoleRepository
 
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        // The members table (and its RoleId column) may not exist yet on a fresh or legacy store:
-        // then nobody can hold a role. Single-quoted literal is required by the table-valued pragma.
-        await using (var probe = connection.CreateCommand())
+        if (!await MembersHaveRoleColumnAsync(connection, cancellationToken).ConfigureAwait(false))
         {
-            probe.CommandText =
-                $"SELECT COUNT(*) FROM pragma_table_info('{_membersTable.Replace("'", "''", StringComparison.Ordinal)}') WHERE name = 'RoleId'";
-            if (Convert.ToInt32(await probe.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture) == 0)
-            {
-                return false;
-            }
+            return false;
         }
 
         await using var command = connection.CreateCommand();

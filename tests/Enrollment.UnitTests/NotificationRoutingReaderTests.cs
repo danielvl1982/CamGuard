@@ -90,6 +90,17 @@ public sealed class NotificationRoutingReaderTests
     }
 
     [Fact]
+    public async Task Empty_member_id_falls_back_to_the_default_channels_without_a_member_lookup()
+    {
+        SetupDefault(NotificationChannel.Email);
+
+        var channels = await CreateSut().GetChannelsForMemberAsync(Guid.Empty, CancellationToken.None);
+
+        Assert.Equal([NotificationChannelKind.Email], channels);
+        _mocker.GetMock<IMemberVectorRepository>().VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task Default_channels_are_mapped_from_the_settings_repository()
     {
         SetupDefault(NotificationChannel.Email);

@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.VectorData;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace Enrollment.Infrastructure;
 
@@ -29,6 +30,7 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
     private readonly SqliteCollection<string, MemberVectorRecord> _collection;
     private readonly string _connectionString;
     private readonly string _collectionName;
+    private readonly string _rolesTableName;
     private readonly ActivitySource _activitySource;
 
     /// <summary>
@@ -50,6 +52,7 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
         _activitySource = activitySource;
         _connectionString = value.ConnectionString;
         _collectionName = value.MembersCollectionName;
+        _rolesTableName = value.RolesTableName;
         _collection = new SqliteCollection<string, MemberVectorRecord>(value.ConnectionString, value.MembersCollectionName);
     }
 
@@ -157,7 +160,7 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
         await _collection.UpsertAsync(MemberVectorRecordMapper.FromMember(updated), cancellationToken);
     }
 
-    public async Task SetRoleAsync(MemberId id, RoleId? roleId, CancellationToken cancellationToken)
+    public async Task<RoleAssignmentResult> SetRoleAsync(MemberId id, RoleId? roleId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(id);
 
@@ -165,18 +168,51 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
 
         await EnsureSchemaAsync(cancellationToken);
 
-        // Vectors must be materialized so the re-upsert preserves the existing embedding.
-        var retrieval = new RecordRetrievalOptions { IncludeVectors = true };
-        var record = await _collection.GetAsync(id.Value.ToString(), retrieval, cancellationToken).ConfigureAwait(false);
-        if (record is null)
+        // RoleId is a plain column, so a single conditional UPDATE writes only it (the embedding is
+        // untouched) and checks the role still exists in the same statement: SQLite serializes it
+        // against a concurrent role delete, so a dangling id can never be stored.
+        var quotedMembers = Quote(_collectionName);
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+        // Clearing a role must not name the roles table at all: SQLite resolves every table in the
+        // statement at prepare time, and that table only exists once a role has been saved.
+        var roleMustExist = roleId is null
+            ? string.Empty
+            : $" AND EXISTS (SELECT 1 FROM {Quote(_rolesTableName)} WHERE \"Id\" = @role)";
+
+        await using var update = connection.CreateCommand();
+        update.CommandText = $"UPDATE {quotedMembers} SET \"RoleId\" = @role WHERE \"Id\" = @id{roleMustExist}";
+        update.Parameters.AddWithValue("@id", id.Value.ToString());
+        update.Parameters.AddWithValue("@role", roleId is null ? DBNull.Value : roleId.Value.ToString());
+
+        int changed;
+        try
         {
-            throw new KeyNotFoundException($"No enrolled member with id '{id.Value}'.");
+            changed = await update.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (SqliteException ex) when (roleId is not null && ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
+        {
+            // The roles table is only created with the first saved role: no role can exist yet.
+            changed = 0;
         }
 
-        var member = MemberVectorRecordMapper.ToMember(record);
-        member.AssignRole(roleId);
-        await _collection.UpsertAsync(MemberVectorRecordMapper.FromMember(member), cancellationToken);
+        if (changed > 0)
+        {
+            return RoleAssignmentResult.Assigned;
+        }
+
+        // Nothing updated: the member is unknown, or the role vanished.
+        await using var exists = connection.CreateCommand();
+        exists.CommandText = $"SELECT EXISTS(SELECT 1 FROM {quotedMembers} WHERE \"Id\" = @id)";
+        exists.Parameters.AddWithValue("@id", id.Value.ToString());
+        return Convert.ToInt32(await exists.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture) == 1
+            ? RoleAssignmentResult.RoleNotFound
+            : throw new KeyNotFoundException($"No enrolled member with id '{id.Value}'.");
     }
+
+    private static string Quote(string identifier) =>
+        "\"" + identifier.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
 
     public async Task RenameAsync(MemberId id, string fullName, CancellationToken cancellationToken)
     {
@@ -195,13 +231,9 @@ public sealed class SqliteVecMemberRepository : IMemberVectorRepository
             throw new KeyNotFoundException($"No enrolled member with id '{id.Value}'.");
         }
 
+        // The blank-name guard above makes a Rename failure unreachable.
         var member = MemberVectorRecordMapper.ToMember(record);
-        var renamed = member.Rename(fullName);
-        if (renamed.IsFailure)
-        {
-            throw new ArgumentException("Full name must not be blank.", nameof(fullName));
-        }
-
+        member.Rename(fullName);
         await _collection.UpsertAsync(MemberVectorRecordMapper.FromMember(member), cancellationToken);
     }
 

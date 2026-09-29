@@ -27,10 +27,13 @@ public sealed class AssignMemberRoleCommandHandler(
             return UnitResult.Failure(AssignMemberRoleError.RoleNotFound);
         }
 
-        await memberVectorRepository.SetRoleAsync(command.MemberId, command.RoleId, cancellationToken)
+        // The pre-check above is the friendly path; the repository re-checks atomically at write time.
+        var assigned = await memberVectorRepository.SetRoleAsync(command.MemberId, command.RoleId, cancellationToken)
             .ConfigureAwait(false);
 
-        return UnitResult.Success<AssignMemberRoleError>();
+        return assigned == RoleAssignmentResult.Assigned
+            ? UnitResult.Success<AssignMemberRoleError>()
+            : UnitResult.Failure(AssignMemberRoleError.RoleNotFound);
     }
 }
 

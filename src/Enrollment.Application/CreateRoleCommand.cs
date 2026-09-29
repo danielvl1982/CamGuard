@@ -27,7 +27,15 @@ public sealed class CreateRoleCommandHandler(IRoleRepository roleRepository)
             return Result.Failure<RoleId, CreateRoleError>(CreateRoleError.NameAlreadyInUse);
         }
 
-        await roleRepository.SaveAsync(role, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await roleRepository.SaveAsync(role, cancellationToken).ConfigureAwait(false);
+        }
+        catch (DuplicateRoleNameException)
+        {
+            // Lost a race with a concurrent create of the same name.
+            return Result.Failure<RoleId, CreateRoleError>(CreateRoleError.NameAlreadyInUse);
+        }
 
         return Result.Success<RoleId, CreateRoleError>(role.Id);
     }
