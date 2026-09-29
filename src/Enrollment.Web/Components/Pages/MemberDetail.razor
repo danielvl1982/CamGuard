@@ -98,6 +98,44 @@
             <p class="mt-1 text-sm text-text-muted">Member ID <code>@member.Id</code></p>
         </div>
 
+        <div class="mb-6 rounded-lg border border-border bg-surface p-6">
+            <h2 class="mb-2 text-xl font-semibold text-text">Role</h2>
+            <p class="mb-3 text-sm text-text-muted">Current role: @CurrentRoleName. The role decides which channels notify when this member is recognized.</p>
+            <div class="flex flex-wrap items-end gap-4">
+                <div>
+                    <label for="memberRole" class="mb-1 block text-sm font-medium text-text">Role</label>
+                    <select id="memberRole"
+                            class="block rounded border border-border bg-elevated px-3 py-2 text-sm text-text"
+                            @bind="selectedRoleValue"
+                            @bind:after="() => roleNotice = null"
+                            disabled="@(isSavingRole ? "disabled" : null)">
+                        <option value="">No role</option>
+                        @foreach (var role in roles)
+                        {
+                            <option value="@role.Id.Value">@role.Name</option>
+                        }
+                    </select>
+                </div>
+                <button type="button"
+                        class="rounded bg-accent px-4 py-2 font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50"
+                        disabled="@(isSavingRole ? "disabled" : null)"
+                        @onclick="SaveRoleAsync">
+                    @(isSavingRole ? "Saving…" : "Save role")
+                </button>
+            </div>
+            @if (roleNotice is not null)
+            {
+                @if (roleNoticeIsError)
+                {
+                    <p class="validation-message mt-1 text-sm" role="alert">@roleNotice</p>
+                }
+                else
+                {
+                    <p class="mt-1 text-sm text-text" role="status">@roleNotice</p>
+                }
+            }
+        </div>
+
         <div class="rounded-lg border border-border bg-surface p-6">
             <h2 class="mb-6 text-xl font-semibold text-text">Stored images</h2>
             @if (deleteNotice is not null)
@@ -270,6 +308,14 @@
     private string renameName = "";
     private string? renameError;
     private string? renameNotice;
+    private IReadOnlyList<Role> roles = [];
+    private string selectedRoleValue = "";
+    private bool isSavingRole;
+    private string? roleNotice;
+    private bool roleNoticeIsError;
+
+    private string CurrentRoleName =>
+        member?.RoleId is { } roleId ? roles.FirstOrDefault(r => r.Id.Equals(roleId))?.Name ?? "unknown role" : "none";
 
     protected override async Task OnParametersSetAsync() => await LoadAsync();
 
@@ -301,6 +347,10 @@
             }
 
             images = await imageStore.ListByMemberAsync(member.Id, CancellationToken.None);
+
+            var listRoles = scope.ServiceProvider.GetRequiredService<ListRolesQueryHandler>();
+            roles = await listRoles.HandleAsync(new ListRolesQuery(), CancellationToken.None);
+            selectedRoleValue = member.RoleId?.Value.ToString() ?? "";
         }
         catch (Exception ex)
         {
@@ -396,6 +446,63 @@
         RenameMemberError.MemberNotFound => "That member was not found. It may have been removed.",
         _ => "Could not rename the member. Please try again."
     };
+
+    private async Task SaveRoleAsync()
+    {
+        if (isSavingRole || member is null)
+        {
+            return;
+        }
+
+        isSavingRole = true;
+        roleNotice = null;
+        var memberId = member.Id;
+        try
+        {
+            RoleId? roleId = null;
+            if (selectedRoleValue.Length > 0)
+            {
+                if (!Guid.TryParse(selectedRoleValue, out var guid) || RoleId.From(guid) is not { IsSuccess: true } parsed)
+                {
+                    roleNotice = "Choose a valid role.";
+                    roleNoticeIsError = true;
+                    return;
+                }
+
+                roleId = parsed.Value;
+            }
+
+            using var scope = ScopeFactory.CreateScope();
+            var handler = scope.ServiceProvider.GetRequiredService<AssignMemberRoleCommandHandler>();
+            var result = await handler.HandleAsync(new AssignMemberRoleCommand(memberId, roleId), CancellationToken.None);
+            if (result.IsFailure)
+            {
+                roleNotice = result.Error switch
+                {
+                    AssignMemberRoleError.MemberNotFound => "That member was not found. It may have been removed.",
+                    AssignMemberRoleError.RoleNotFound => "That role was not found. It may have been deleted; reload the page.",
+                    _ => "Could not save the role. Please try again."
+                };
+                roleNoticeIsError = true;
+                return;
+            }
+
+            var members = scope.ServiceProvider.GetRequiredService<IMemberVectorRepository>();
+            member = await members.FindByIdAsync(memberId, CancellationToken.None) ?? member;
+            roleNotice = roleId is null ? "Role removed." : "Role saved.";
+            roleNoticeIsError = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to assign a role to member {MemberId}.", memberId);
+            roleNotice = "Could not save the role. Please try again.";
+            roleNoticeIsError = true;
+        }
+        finally
+        {
+            isSavingRole = false;
+        }
+    }
 
     private void ArmDelete(MemberImage image)
     {

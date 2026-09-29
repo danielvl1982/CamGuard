@@ -1,0 +1,554 @@
+@page "/roles"
+@rendermode InteractiveServer
+
+@using Enrollment.Application
+@using Enrollment.Domain
+@inject IServiceScopeFactory ScopeFactory
+@inject ILogger<Roles> Logger
+
+@* InteractiveServer: create/edit/delete need event handlers. Scoped handlers are
+   never injected into the circuit (Members.razor precedent) — one short scope is
+   created per load/action instead. *@
+<PageTitle>Roles</PageTitle>
+
+<div class="mx-auto w-full max-w-3xl">
+    <h1 class="mb-2 text-xl font-semibold text-text">Roles</h1>
+    <p class="mb-6 text-sm text-text-muted">
+        A role decides which channels are used to notify when a member with that role is recognized.
+    </p>
+
+    @if (notice is not null)
+    {
+        @if (noticeIsError)
+        {
+            <p class="validation-message mb-6 text-sm" role="alert">@notice</p>
+        }
+        else
+        {
+            <div class="mb-6 rounded-lg border border-border bg-surface p-4" role="status">
+                <p class="text-sm text-text">@notice</p>
+            </div>
+        }
+    }
+
+    <div class="mb-6 rounded-lg border border-border bg-surface p-6">
+        <h2 class="mb-2 text-xl font-semibold text-text">New role</h2>
+        <label for="newRoleName" class="mb-1 block text-sm font-medium text-text">Name</label>
+        <input id="newRoleName"
+               type="text"
+               maxlength="@Role.MaxNameLength"
+               class="block w-full rounded border border-border bg-elevated px-3 py-2 text-text"
+               aria-invalid="@(createError is not null ? "true" : null)"
+               aria-describedby="@(createError is not null ? "createError" : null)"
+               @bind="newName"
+               @bind:event="oninput"
+               @bind:after="() => createError = null"
+               disabled="@(isBusy ? "disabled" : null)" />
+        <fieldset class="mt-3">
+            <legend class="mb-1 text-sm font-medium text-text">Channels</legend>
+            <div class="flex flex-wrap gap-4">
+                <label class="flex items-center gap-2 text-sm text-text">
+                    <input type="checkbox" @bind="newPush" disabled="@(isBusy ? "disabled" : null)" /> Push
+                </label>
+                <label class="flex items-center gap-2 text-sm text-text">
+                    <input type="checkbox" @bind="newEmail" disabled="@(isBusy ? "disabled" : null)" /> Email
+                </label>
+            </div>
+            <p class="mt-1 text-sm text-text-muted">Leave both unchecked for a role that sends no notifications.</p>
+        </fieldset>
+        @if (createError is not null)
+        {
+            <p id="createError" class="validation-message mt-1 text-sm" role="alert">@createError</p>
+        }
+        <div class="mt-3">
+            <button type="button"
+                    class="rounded bg-accent px-4 py-2 font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50"
+                    disabled="@(isBusy ? "disabled" : null)"
+                    @onclick="CreateAsync">
+                @(isBusy && isCreating ? "Creating…" : "Create role")
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <p class="text-sm text-text-muted" role="status">Loading roles…</p>
+    }
+    else if (loadError is not null)
+    {
+        <p class="validation-message text-sm" role="alert">@loadError</p>
+    }
+    else if (roles is { Count: 0 })
+    {
+        <div class="mb-6 rounded-lg border border-border bg-surface p-6 text-center" role="status">
+            <p class="text-text-muted">No roles have been created yet.</p>
+        </div>
+    }
+    else if (roles is not null)
+    {
+        <div class="mb-6 overflow-x-auto rounded-lg border border-border bg-surface">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-elevated text-left">
+                        <th scope="col" class="px-4 py-3 font-semibold text-text">Role</th>
+                        <th scope="col" class="px-4 py-3 font-semibold text-text">Channels</th>
+                        <th scope="col" class="px-4 py-3 font-semibold text-text">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var role in roles)
+                    {
+                        <tr @key="role.Id" class="border-t border-border transition-colors hover:bg-surface">
+                            @if (editingId is not null && editingId.Equals(role.Id))
+                            {
+                                <td class="px-4 py-3 text-text">
+                                    <label for="editRoleName" class="sr-only">Role name</label>
+                                    <input id="editRoleName"
+                                           type="text"
+                                           maxlength="@Role.MaxNameLength"
+                                           class="block w-full rounded border border-border bg-elevated px-3 py-2 text-text"
+                                           aria-invalid="@(editError is not null ? "true" : null)"
+                                           aria-describedby="@(editError is not null ? "editError" : null)"
+                                           @bind="editName"
+                                           @bind:event="oninput"
+                                           @bind:after="() => editError = null"
+                                           disabled="@(isBusy ? "disabled" : null)" />
+                                    @if (editError is not null)
+                                    {
+                                        <p id="editError" class="validation-message mt-1 text-sm" role="alert">@editError</p>
+                                    }
+                                </td>
+                                <td class="px-4 py-3 text-text">
+                                    <div class="flex flex-wrap gap-4">
+                                        <label class="flex items-center gap-2 text-sm text-text">
+                                            <input type="checkbox" @bind="editPush" disabled="@(isBusy ? "disabled" : null)" /> Push
+                                        </label>
+                                        <label class="flex items-center gap-2 text-sm text-text">
+                                            <input type="checkbox" @bind="editEmail" disabled="@(isBusy ? "disabled" : null)" /> Email
+                                        </label>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-text">
+                                    <button type="button"
+                                            class="rounded bg-accent px-3 py-1 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50"
+                                            disabled="@(isBusy ? "disabled" : null)"
+                                            @onclick="SaveEditAsync">
+                                        @(isBusy ? "Saving…" : "Save")
+                                    </button>
+                                    <button type="button"
+                                            class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                            disabled="@(isBusy ? "disabled" : null)"
+                                            @onclick="CancelEdit">
+                                        Cancel
+                                    </button>
+                                </td>
+                            }
+                            else
+                            {
+                                <td class="px-4 py-3 text-text">@role.Name</td>
+                                <td class="px-4 py-3 text-text-muted">@DescribeChannels(role.Channels)</td>
+                                <td class="px-4 py-3 text-text">
+                                    @if (pendingDeleteId is not null && pendingDeleteId.Equals(role.Id))
+                                    {
+                                        <span class="text-sm text-text-muted">Delete this role?</span>
+                                        <button type="button"
+                                                class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                                disabled="@(isBusy ? "disabled" : null)"
+                                                @onclick="() => ConfirmDeleteAsync(role)">
+                                            @(isBusy ? "Deleting…" : "Yes, delete")
+                                        </button>
+                                        <button type="button"
+                                                class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                                disabled="@(isBusy ? "disabled" : null)"
+                                                @onclick="CancelDelete">
+                                            Cancel
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button"
+                                                class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                                aria-label="Edit @role.Name"
+                                                disabled="@(isBusy ? "disabled" : null)"
+                                                @onclick="() => StartEdit(role)">
+                                            Edit
+                                        </button>
+                                        <button type="button"
+                                                class="rounded border border-border px-2 py-1 text-sm text-text-muted transition-colors hover:bg-surface hover:text-text"
+                                                aria-label="Delete @role.Name"
+                                                disabled="@(isBusy ? "disabled" : null)"
+                                                @onclick="() => ArmDelete(role)">
+                                            Delete
+                                        </button>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <div class="rounded-lg border border-border bg-surface p-6">
+        <h2 class="mb-2 text-xl font-semibold text-text">Default channels for denied and unknown access</h2>
+        <p class="mb-3 text-sm text-text-muted">
+            Recognized members use their role's channels; denied and unknown access alerts use these defaults.
+        </p>
+        <fieldset>
+            <legend class="sr-only">Default channels</legend>
+            <div class="flex flex-wrap gap-4">
+                <label class="flex items-center gap-2 text-sm text-text">
+                    <input type="checkbox" @bind="defaultPush" disabled="@(isBusy || !defaultsLoaded ? "disabled" : null)" /> Push
+                </label>
+                <label class="flex items-center gap-2 text-sm text-text">
+                    <input type="checkbox" @bind="defaultEmail" disabled="@(isBusy || !defaultsLoaded ? "disabled" : null)" /> Email
+                </label>
+            </div>
+        </fieldset>
+        <div class="mt-3 flex flex-wrap items-center gap-4">
+            <button type="button"
+                    class="rounded bg-accent px-4 py-2 font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50"
+                    disabled="@(isBusy || !defaultsLoaded ? "disabled" : null)"
+                    @onclick="SaveDefaultsAsync">
+                @(isBusy && isSavingDefaults ? "Saving…" : "Save defaults")
+            </button>
+            @if (defaultsNotice is not null)
+            {
+                @if (defaultsNoticeIsError)
+                {
+                    <span class="validation-message text-sm" role="alert">@defaultsNotice</span>
+                }
+                else
+                {
+                    <span class="text-sm text-text" role="status">@defaultsNotice</span>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<Role>? roles;
+    private bool isLoading = true;
+    private string? loadError;
+    private bool isBusy;
+    private bool isCreating;
+    private bool isSavingDefaults;
+    private string? notice;
+    private bool noticeIsError;
+
+    private string newName = "";
+    private bool newPush;
+    private bool newEmail;
+    private string? createError;
+
+    private RoleId? editingId;
+    private string editName = "";
+    private bool editPush;
+    private bool editEmail;
+    private string? editError;
+
+    private RoleId? pendingDeleteId;
+
+    private bool defaultsLoaded;
+    private bool defaultPush;
+    private bool defaultEmail;
+    private string? defaultsNotice;
+    private bool defaultsNoticeIsError;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var list = scope.ServiceProvider.GetRequiredService<ListRolesQueryHandler>();
+            roles = await list.HandleAsync(new ListRolesQuery(), CancellationToken.None);
+
+            var defaults = scope.ServiceProvider.GetRequiredService<GetDefaultChannelsQueryHandler>();
+            var channels = await defaults.HandleAsync(new GetDefaultChannelsQuery(), CancellationToken.None);
+            defaultPush = channels.Contains(NotificationChannel.Push);
+            defaultEmail = channels.Contains(NotificationChannel.Email);
+            defaultsLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load roles.");
+            loadError = "The roles could not be loaded. Refresh the page to try again.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static List<NotificationChannel> ToChannels(bool push, bool email)
+    {
+        var channels = new List<NotificationChannel>(2);
+        if (push)
+        {
+            channels.Add(NotificationChannel.Push);
+        }
+
+        if (email)
+        {
+            channels.Add(NotificationChannel.Email);
+        }
+
+        return channels;
+    }
+
+    private static string DescribeChannels(IReadOnlySet<NotificationChannel> channels)
+    {
+        if (channels.Count == 0)
+        {
+            return "No notifications";
+        }
+
+        return string.Join(", ", channels.Order().Select(c => c.ToString()));
+    }
+
+    private async Task CreateAsync()
+    {
+        if (isBusy)
+        {
+            return;
+        }
+
+        isBusy = true;
+        isCreating = true;
+        createError = null;
+        notice = null;
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var handler = scope.ServiceProvider.GetRequiredService<CreateRoleCommandHandler>();
+            var result = await handler.HandleAsync(
+                new CreateRoleCommand(newName, ToChannels(newPush, newEmail)), CancellationToken.None);
+            if (result.IsFailure)
+            {
+                // Keep what the user typed; only the message changes.
+                createError = MapCreateError(result.Error);
+                return;
+            }
+
+            notice = $"Role '{newName.Trim()}' was created.";
+            noticeIsError = false;
+            newName = "";
+            newPush = false;
+            newEmail = false;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to create a role.");
+            createError = "Could not create the role. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+            isCreating = false;
+        }
+    }
+
+    private static string MapCreateError(CreateRoleError error) => error switch
+    {
+        CreateRoleError.InvalidName => InvalidNameMessage,
+        CreateRoleError.NameAlreadyInUse => "A role with that name already exists.",
+        _ => "Could not create the role. Please try again."
+    };
+
+    private static readonly string InvalidNameMessage =
+        $"Enter a role name of up to {Role.MaxNameLength} characters.";
+
+    private void StartEdit(Role role)
+    {
+        if (isBusy)
+        {
+            return;
+        }
+
+        editingId = role.Id;
+        editName = role.Name;
+        editPush = role.Channels.Contains(NotificationChannel.Push);
+        editEmail = role.Channels.Contains(NotificationChannel.Email);
+        editError = null;
+        pendingDeleteId = null;
+        notice = null;
+    }
+
+    private void CancelEdit()
+    {
+        if (isBusy)
+        {
+            return;
+        }
+
+        editingId = null;
+        editError = null;
+    }
+
+    private async Task SaveEditAsync()
+    {
+        if (isBusy || editingId is null)
+        {
+            return;
+        }
+
+        isBusy = true;
+        editError = null;
+        var roleId = editingId;
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var handler = scope.ServiceProvider.GetRequiredService<UpdateRoleCommandHandler>();
+            var result = await handler.HandleAsync(
+                new UpdateRoleCommand(roleId, editName, ToChannels(editPush, editEmail)), CancellationToken.None);
+            if (result.IsFailure)
+            {
+                editError = MapUpdateError(result.Error);
+                if (result.Error == UpdateRoleError.RoleNotFound)
+                {
+                    editingId = null;
+                    notice = editError;
+                    noticeIsError = true;
+                    await LoadAsync();
+                }
+
+                return;
+            }
+
+            editingId = null;
+            notice = "Role updated.";
+            noticeIsError = false;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to update role {RoleId}.", roleId);
+            editError = "Could not update the role. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private static string MapUpdateError(UpdateRoleError error) => error switch
+    {
+        UpdateRoleError.InvalidName => InvalidNameMessage,
+        UpdateRoleError.NameAlreadyInUse => "A role with that name already exists.",
+        UpdateRoleError.RoleNotFound => "That role was not found. It may have been deleted.",
+        _ => "Could not update the role. Please try again."
+    };
+
+    private void ArmDelete(Role role)
+    {
+        if (isBusy)
+        {
+            return;
+        }
+
+        pendingDeleteId = role.Id;
+        editingId = null;
+        notice = null;
+    }
+
+    private void CancelDelete()
+    {
+        if (isBusy)
+        {
+            return;
+        }
+
+        pendingDeleteId = null;
+    }
+
+    private async Task ConfirmDeleteAsync(Role role)
+    {
+        if (isBusy)
+        {
+            return;
+        }
+
+        isBusy = true;
+        notice = null;
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var handler = scope.ServiceProvider.GetRequiredService<DeleteRoleCommandHandler>();
+            var result = await handler.HandleAsync(new DeleteRoleCommand(role.Id), CancellationToken.None);
+            pendingDeleteId = null;
+            if (result.IsFailure)
+            {
+                notice = MapDeleteError(result.Error, role.Name);
+                noticeIsError = true;
+                if (result.Error == DeleteRoleError.RoleNotFound)
+                {
+                    await LoadAsync();
+                }
+
+                return;
+            }
+
+            notice = $"Role '{role.Name}' was deleted.";
+            noticeIsError = false;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete role {RoleId}.", role.Id);
+            notice = $"Could not delete '{role.Name}'. Please try again.";
+            noticeIsError = true;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private static string MapDeleteError(DeleteRoleError error, string name) => error switch
+    {
+        DeleteRoleError.RoleInUse => $"Role '{name}' is assigned to at least one member. Remove it from those members first.",
+        DeleteRoleError.RoleNotFound => $"Role '{name}' was not found. It may already have been deleted.",
+        _ => $"Could not delete '{name}'. Please try again."
+    };
+
+    private async Task SaveDefaultsAsync()
+    {
+        if (isBusy)
+        {
+            return;
+        }
+
+        isBusy = true;
+        isSavingDefaults = true;
+        defaultsNotice = null;
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var handler = scope.ServiceProvider.GetRequiredService<SetDefaultChannelsCommandHandler>();
+            var result = await handler.HandleAsync(
+                new SetDefaultChannelsCommand(ToChannels(defaultPush, defaultEmail)), CancellationToken.None);
+            defaultsNoticeIsError = result.IsFailure;
+            defaultsNotice = result.IsFailure
+                ? "One of the selected channels is not valid."
+                : defaultPush || defaultEmail
+                    ? "Default channels saved."
+                    : "Default channels saved. Denied and unknown access will send no notifications.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save default channels.");
+            defaultsNotice = "Could not save the default channels. Please try again.";
+            defaultsNoticeIsError = true;
+        }
+        finally
+        {
+            isBusy = false;
+            isSavingDefaults = false;
+        }
+    }
+}
