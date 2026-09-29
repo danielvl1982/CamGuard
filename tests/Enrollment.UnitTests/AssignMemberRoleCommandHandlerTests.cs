@@ -61,6 +61,23 @@ public sealed class AssignMemberRoleCommandHandlerTests
     }
 
     [Fact]
+    public async Task Assign_fails_when_the_role_vanishes_before_the_write()
+    {
+        var mocker = new AutoMocker();
+        var member = NewMember();
+        var role = NewRole();
+        Setup(mocker, member, role);
+        mocker.GetMock<IMemberVectorRepository>()
+            .Setup(x => x.SetRoleAsync(member.Id, role.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RoleAssignmentResult.RoleNotFound);
+
+        var result = await mocker.CreateInstance<AssignMemberRoleCommandHandler>()
+            .HandleAsync(new AssignMemberRoleCommand(member.Id, role.Id), CancellationToken.None);
+
+        Assert.Equal(AssignMemberRoleError.RoleNotFound, result.Error);
+    }
+
+    [Fact]
     public async Task Assign_fails_for_unknown_member()
     {
         var mocker = new AutoMocker();

@@ -35,8 +35,20 @@ public sealed class UpdateRoleCommandHandler(IRoleRepository roleRepository)
             return UnitResult.Failure(UpdateRoleError.NameAlreadyInUse);
         }
 
-        role.SetChannels(command.Channels);
-        await roleRepository.SaveAsync(role, cancellationToken).ConfigureAwait(false);
+        if (role.SetChannels(command.Channels).IsFailure)
+        {
+            return UnitResult.Failure(UpdateRoleError.InvalidName);
+        }
+
+        try
+        {
+            await roleRepository.SaveAsync(role, cancellationToken).ConfigureAwait(false);
+        }
+        catch (DuplicateRoleNameException)
+        {
+            // Lost a race with a concurrent rename/create to the same name.
+            return UnitResult.Failure(UpdateRoleError.NameAlreadyInUse);
+        }
 
         return UnitResult.Success<UpdateRoleError>();
     }

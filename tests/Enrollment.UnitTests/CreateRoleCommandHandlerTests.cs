@@ -38,6 +38,21 @@ public sealed class CreateRoleCommandHandlerTests
     }
 
     [Fact]
+    public async Task Create_maps_a_duplicate_name_race_on_save_to_NameAlreadyInUse()
+    {
+        var mocker = new AutoMocker();
+        var repo = mocker.GetMock<IRoleRepository>();
+        repo.Setup(x => x.FindByNameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((Role?)null);
+        repo.Setup(x => x.SaveAsync(It.IsAny<Role>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DuplicateRoleNameException("Family"));
+
+        var result = await mocker.CreateInstance<CreateRoleCommandHandler>()
+            .HandleAsync(new CreateRoleCommand("Family", []), CancellationToken.None);
+
+        Assert.Equal(CreateRoleError.NameAlreadyInUse, result.Error);
+    }
+
+    [Fact]
     public async Task Create_rejects_a_name_already_in_use()
     {
         var mocker = new AutoMocker();

@@ -111,6 +111,18 @@ public sealed class CompositeNotificationServiceTests
     }
 
     [Fact]
+    public async Task Allowed_alert_without_a_member_uses_the_default_channels()
+    {
+        SetupDefault(NotificationChannelKind.Push);
+
+        await CreateSut().NotifyAsync(Alert(AccessOutcome.Allowed, null), CancellationToken.None);
+
+        VerifySent(_push, Times.Once());
+        VerifySent(_email, Times.Never());
+        _routing.Verify(x => x.GetChannelsForMemberAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never());
+    }
+
+    [Fact]
     public async Task Empty_default_channels_send_nothing()
     {
         SetupDefault();

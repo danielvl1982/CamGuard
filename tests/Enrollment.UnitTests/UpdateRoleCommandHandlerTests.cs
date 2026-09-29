@@ -37,6 +37,21 @@ public sealed class UpdateRoleCommandHandlerTests
     }
 
     [Fact]
+    public async Task Update_maps_a_duplicate_name_race_on_save_to_NameAlreadyInUse()
+    {
+        var mocker = new AutoMocker();
+        var role = NewRole();
+        var repo = Setup(mocker, role, byName: null);
+        repo.Setup(x => x.SaveAsync(It.IsAny<Role>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DuplicateRoleNameException("Friends"));
+
+        var result = await mocker.CreateInstance<UpdateRoleCommandHandler>()
+            .HandleAsync(new UpdateRoleCommand(role.Id, "Friends", []), CancellationToken.None);
+
+        Assert.Equal(UpdateRoleError.NameAlreadyInUse, result.Error);
+    }
+
+    [Fact]
     public async Task Update_allows_keeping_own_name_with_different_casing()
     {
         var mocker = new AutoMocker();

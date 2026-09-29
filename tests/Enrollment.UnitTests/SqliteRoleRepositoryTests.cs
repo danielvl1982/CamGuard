@@ -93,8 +93,75 @@ public sealed class SqliteRoleRepositoryTests : IDisposable
     {
         await _repository.SaveAsync(NewRole("Family"), CancellationToken.None);
 
-        await Assert.ThrowsAsync<SqliteException>(() =>
+        await Assert.ThrowsAsync<DuplicateRoleNameException>(() =>
             _repository.SaveAsync(NewRole("FAMILY"), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task DeleteIfUnused_deletes_an_unused_role_with_its_channels()
+    {
+        var role = NewRole("Family", NotificationChannel.Push, NotificationChannel.Email);
+        await _repository.SaveAsync(role, CancellationToken.None);
+
+        Assert.Equal(RoleDeletionResult.Deleted, await _repository.DeleteIfUnusedAsync(role.Id, CancellationToken.None));
+
+        Assert.Null(await _repository.FindByIdAsync(role.Id, CancellationToken.None));
+        Assert.Equal(0, CountRows("role_channels"));
+    }
+
+    [Fact]
+    public async Task DeleteIfUnused_keeps_a_role_a_member_holds()
+    {
+        var members = new SqliteVecMemberRepository(_options, new ActivitySource("Enrollment.UnitTests.Roles.Members"));
+        var role = NewRole("Family", NotificationChannel.Push);
+        await _repository.SaveAsync(role, CancellationToken.None);
+        var member = await EnrollMemberAsync(members);
+        await members.SetRoleAsync(member.Id, role.Id, CancellationToken.None);
+
+        Assert.Equal(RoleDeletionResult.InUse, await _repository.DeleteIfUnusedAsync(role.Id, CancellationToken.None));
+
+        Assert.NotNull(await _repository.FindByIdAsync(role.Id, CancellationToken.None));
+        Assert.Equal(1, CountRows("role_channels"));
+    }
+
+    [Fact]
+    public async Task DeleteIfUnused_reports_an_unknown_role_as_not_found()
+    {
+        Assert.Equal(RoleDeletionResult.NotFound, await _repository.DeleteIfUnusedAsync(RoleId.New(), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Assigning_after_the_role_was_deleted_reports_RoleNotFound_and_stores_no_dangling_id()
+    {
+        var members = new SqliteVecMemberRepository(_options, new ActivitySource("Enrollment.UnitTests.Roles.Members"));
+        var role = NewRole("Family");
+        await _repository.SaveAsync(role, CancellationToken.None);
+        var member = await EnrollMemberAsync(members);
+
+        // Interleaving: the handler's pre-check saw the role, then the delete won before the write.
+        Assert.Equal(RoleDeletionResult.Deleted, await _repository.DeleteIfUnusedAsync(role.Id, CancellationToken.None));
+        var assigned = await members.SetRoleAsync(member.Id, role.Id, CancellationToken.None);
+
+        Assert.Equal(RoleAssignmentResult.RoleNotFound, assigned);
+        Assert.Null((await members.FindByIdAsync(member.Id, CancellationToken.None))!.RoleId);
+    }
+
+    [Fact]
+    public async Task Assigning_before_any_role_exists_reports_RoleNotFound()
+    {
+        var members = new SqliteVecMemberRepository(_options, new ActivitySource("Enrollment.UnitTests.Roles.Members"));
+        var member = await EnrollMemberAsync(members);
+
+        Assert.Equal(RoleAssignmentResult.RoleNotFound, await members.SetRoleAsync(member.Id, RoleId.New(), CancellationToken.None));
+    }
+
+    private static async Task<Member> EnrollMemberAsync(SqliteVecMemberRepository members)
+    {
+        var vector = new float[FaceEmbedding.ExpectedDimension];
+        vector[0] = 0.8f;
+        var member = Member.Enroll(MemberId.New(), "Ada Lovelace", FaceEmbedding.FromVector(vector).Value).Value;
+        await members.SaveAsync(member, CancellationToken.None);
+        return member;
     }
 
     [Fact]

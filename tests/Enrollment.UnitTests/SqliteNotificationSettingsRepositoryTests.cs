@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Common;
+using Enrollment.Application;
 using Enrollment.Domain;
 using Enrollment.Infrastructure;
 using Microsoft.Data.Sqlite;
@@ -34,6 +35,19 @@ public sealed class SqliteNotificationSettingsRepositoryTests : IDisposable
     {
         await _repository.SetDefaultChannelsAsync([NotificationChannel.Email], CancellationToken.None);
 
+        Assert.Equal([NotificationChannel.Email], await _repository.GetDefaultChannelsAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Rejected_invalid_set_leaves_the_stored_custom_default_untouched()
+    {
+        var handler = new SetDefaultChannelsCommandHandler(_repository);
+        await handler.HandleAsync(new SetDefaultChannelsCommand([NotificationChannel.Email]), CancellationToken.None);
+
+        var result = await handler.HandleAsync(
+            new SetDefaultChannelsCommand([NotificationChannel.Push, (NotificationChannel)99]), CancellationToken.None);
+
+        Assert.Equal(SetDefaultChannelsError.InvalidChannel, result.Error);
         Assert.Equal([NotificationChannel.Email], await _repository.GetDefaultChannelsAsync(CancellationToken.None));
     }
 

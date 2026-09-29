@@ -15,19 +15,12 @@ public sealed class DeleteRoleCommandHandler(IRoleRepository roleRepository)
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        if (await roleRepository.FindByIdAsync(command.RoleId, cancellationToken).ConfigureAwait(false) is null)
+        return await roleRepository.DeleteIfUnusedAsync(command.RoleId, cancellationToken).ConfigureAwait(false) switch
         {
-            return UnitResult.Failure(DeleteRoleError.RoleNotFound);
-        }
-
-        if (await roleRepository.IsInUseAsync(command.RoleId, cancellationToken).ConfigureAwait(false))
-        {
-            return UnitResult.Failure(DeleteRoleError.RoleInUse);
-        }
-
-        await roleRepository.DeleteAsync(command.RoleId, cancellationToken).ConfigureAwait(false);
-
-        return UnitResult.Success<DeleteRoleError>();
+            RoleDeletionResult.Deleted => UnitResult.Success<DeleteRoleError>(),
+            RoleDeletionResult.InUse => UnitResult.Failure(DeleteRoleError.RoleInUse),
+            _ => UnitResult.Failure(DeleteRoleError.RoleNotFound),
+        };
     }
 }
 

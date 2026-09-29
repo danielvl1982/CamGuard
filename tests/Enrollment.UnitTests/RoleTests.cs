@@ -64,6 +64,25 @@ public sealed class RoleTests
     }
 
     [Fact]
+    public void Create_rejects_an_undefined_channel()
+    {
+        var result = Role.Create(RoleId.New(), "Family", [NotificationChannel.Push, (NotificationChannel)99]);
+
+        Assert.Equal(RoleError.InvalidChannel, result.Error);
+    }
+
+    [Fact]
+    public void SetChannels_rejects_an_undefined_channel_and_leaves_the_set_unchanged()
+    {
+        var role = Role.Create(RoleId.New(), "Family", [NotificationChannel.Push]).Value;
+
+        var result = role.SetChannels([NotificationChannel.Email, (NotificationChannel)99]);
+
+        Assert.Equal(RoleError.InvalidChannel, result.Error);
+        Assert.Equal([NotificationChannel.Push], role.Channels);
+    }
+
+    [Fact]
     public void RoleId_rejects_empty_guid()
     {
         Assert.True(RoleId.From(Guid.Empty).IsFailure);

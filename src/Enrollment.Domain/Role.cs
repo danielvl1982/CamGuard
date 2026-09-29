@@ -34,11 +34,22 @@ public sealed class Role : Entity<RoleId>
         return UnitResult.Success<RoleError>();
     }
 
-    /// <summary>Replaces the channel set (duplicates collapse). An empty set means the role does not notify.</summary>
-    public void SetChannels(IEnumerable<NotificationChannel> channels)
+    /// <summary>
+    /// Replaces the channel set (duplicates collapse). An empty set means the role does not notify;
+    /// an undefined channel value is rejected and leaves the role unchanged.
+    /// </summary>
+    public UnitResult<RoleError> SetChannels(IEnumerable<NotificationChannel> channels)
     {
         ArgumentNullException.ThrowIfNull(channels);
-        Channels = new HashSet<NotificationChannel>(channels);
+
+        var set = new HashSet<NotificationChannel>(channels);
+        if (!AllDefined(set))
+        {
+            return UnitResult.Failure(RoleError.InvalidChannel);
+        }
+
+        Channels = set;
+        return UnitResult.Success<RoleError>();
     }
 
     /// <summary>Reconstitutes a role from persistence without validating the stored name again beyond non-blank.</summary>
@@ -56,10 +67,18 @@ public sealed class Role : Entity<RoleId>
         ArgumentNullException.ThrowIfNull(channels);
 
         var validated = ValidateName(name);
-        return validated.IsFailure
-            ? Result.Failure<Role, RoleError>(validated.Error)
-            : Result.Success<Role, RoleError>(new Role(id, validated.Value, [.. channels]));
+        if (validated.IsFailure)
+        {
+            return Result.Failure<Role, RoleError>(validated.Error);
+        }
+
+        var set = new HashSet<NotificationChannel>(channels);
+        return AllDefined(set)
+            ? Result.Success<Role, RoleError>(new Role(id, validated.Value, set))
+            : Result.Failure<Role, RoleError>(RoleError.InvalidChannel);
     }
+
+    private static bool AllDefined(IEnumerable<NotificationChannel> channels) => channels.All(Enum.IsDefined);
 
     private static Result<string, RoleError> ValidateName(string name)
     {
@@ -78,5 +97,6 @@ public sealed class Role : Entity<RoleId>
 public enum RoleError
 {
     EmptyName,
-    NameTooLong
+    NameTooLong,
+    InvalidChannel
 }
