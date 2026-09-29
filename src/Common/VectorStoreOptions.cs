@@ -32,6 +32,13 @@ public sealed class VectorStoreOptions
     /// search, only newest-first listing.
     /// </summary>
     public string IncidentsTableName { get; set; } = "incidents";
+
+    /// <summary>Name of the plain SQLite table holding roles (member-roles-notifications T2).</summary>
+    public string RolesTableName { get; set; } = "roles";
+
+    /// <summary>Name of the plain SQLite table holding each role's notification channels.</summary>
+    public string RoleChannelsTableName { get; set; } = "role_channels";
+
     /// <summary>
     /// Cosine-DISTANCE threshold for the cross-member duplicate-face gate (member-crud
     /// T3, OD2): a candidate embedding whose nearest stored image of ANOTHER member is

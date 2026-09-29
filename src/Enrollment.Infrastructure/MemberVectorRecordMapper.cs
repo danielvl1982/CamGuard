@@ -10,6 +10,7 @@ internal static class MemberVectorRecordMapper
         Id = member.Id.Value.ToString(),
         FullName = member.FullName,
         IsAnnulled = member.IsAnnulled,
+        RoleId = member.RoleId?.Value.ToString(),
         Embedding = [.. member.Embedding.Vector]
     };
 
@@ -17,7 +18,11 @@ internal static class MemberVectorRecordMapper
     {
         var memberId = MemberId.From(Guid.Parse(record.Id)).Value;
         var embedding = FaceEmbedding.FromVector(record.Embedding).Value;
-        return Member.Rehydrate(memberId, record.FullName, embedding, record.IsAnnulled);
+        // A missing or unparsable stored role id reads back as unassigned.
+        var roleId = Guid.TryParse(record.RoleId, out var roleGuid) && RoleId.From(roleGuid) is { IsSuccess: true } parsed
+            ? parsed.Value
+            : null;
+        return Member.Rehydrate(memberId, record.FullName, embedding, record.IsAnnulled, roleId);
     }
 
     public static string Normalize(string fullName) => fullName.Trim();

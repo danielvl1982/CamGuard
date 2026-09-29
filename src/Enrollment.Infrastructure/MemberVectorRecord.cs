@@ -29,6 +29,13 @@ internal sealed class MemberVectorRecord
     public required bool IsAnnulled { get; init; }
 
     /// <summary>
+    /// Assigned role id in string form, or <c>null</c> when unassigned. Legacy tables get this
+    /// column through the repository's ALTER TABLE migration (nullable, no backfill needed).
+    /// </summary>
+    [VectorStoreData]
+    public string? RoleId { get; init; }
+
+    /// <summary>
     /// Cosine distance (0 = identical, 2 = opposite) — the standard comparison convention for
     /// ArcFace-family embeddings. Resolves design.md's open "distance/similarity metric"
     /// question for this phase.
