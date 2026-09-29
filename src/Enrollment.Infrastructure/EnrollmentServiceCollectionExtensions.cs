@@ -75,6 +75,7 @@ public static class EnrollmentServiceCollectionExtensions
         services.TryAddScoped<EnrollmentService>();
         services.TryAddScoped<QueryByEmbeddingQueryHandler>();
         services.TryAddScoped<IMemberDirectoryReader, MemberDirectoryReader>();
+        services.TryAddScoped<INotificationRoutingReader, NotificationRoutingReader>();
 
         return services;
     }
