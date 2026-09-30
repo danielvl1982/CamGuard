@@ -313,3 +313,33 @@ the user (session 2026-09-27).
 - 2026-09-27 — T8 closed inline: full build 0 errors, full tests 157/157
   (94 + 63). Manual browser smoke pending (user); RDD re-assessment pending
   user decision (boundary `1bd2117`, 4 prior skips).
+- 2026-09-30 — Real-browser smoke DONE (Playwright chromium vs `dotnet run`, scratch
+  SQLite db and image store, real ONNX face models; repo left clean). All steps PASS:
+  blank-image gate (0 files stored); register with a valid face; `/members` lists it;
+  detail opens and the thumbnail decodes; add a valid image (gallery 1→2, 2 files on
+  disk); add another member's face → rejected ("already registered to Bob Dsc"),
+  nothing stored, and a mixed batch is rejected whole; delete one image (file and
+  `member_images` row gone, gallery 2→1); annul (UI label is "Disable": row leaves the
+  list, `members` row kept with `IsAnnulled = 1`, image records kept).
+  *Bug found and fixed (`fix/member-detail-stale-files`):* on `/members/{id}`, the add
+  form accumulated `IBrowserFile` handles across selections, but the browser replaces
+  its file list on every new selection; submitting then failed with "There is no file
+  with ID N…" (JSException), nothing stored. Fix: `OnAddFilesChangedAsync` clears
+  `selectedPhotos` first, so a new selection replaces the earlier one. Verified with
+  Playwright: rejection then re-pick and submit → "Image added."; two picks without
+  submit → only the last listed; remove and delete regressions pass; 0 JSExceptions in
+  the log. Build 0 errors, tests 272/272 (Enrollment 186 + Monitoring 86). No automated
+  component test (no bUnit in the repo).
+  Same bug reproduced on `/register` (two picks without submit, and retry after a
+  no-face rejection: "There is no file with ID 1", nothing stored) and fixed the same
+  way in `Register.razor` (`photos.Clear()` in `OnFilesChangedAsync`). Verified with
+  Playwright: both repros now register, a multi-file single pick registers 2 photos,
+  Remove and `/members` regressions pass, 0 JSExceptions. Build 0 errors, tests
+  272/272 on rerun; one unrelated first-run failure of
+  `MemberAnnulTests.RenameAsync_blank_name_throws_and_keeps_stored_name` (assertion
+  message not captured) passed 3 consecutive reruns, so it looks flaky; cause not
+  investigated. Known trade-off: a new selection whose files are all rejected (e.g.
+  oversize) also clears the previous list, which matches the browser having dropped
+  the earlier handles anyway.
+  RDD re-assessment of the old range (boundary `1bd2117`) is closed as recorded debt:
+  later features went through their own review cycles.
