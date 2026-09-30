@@ -90,11 +90,14 @@ Welcome to your new app", the header is a bare text link, and the footer is a on
   `Enrollment.Web.exe` (PID 12484, running since 18:27) — writer stopped it,
   rebuild green. Parent must restart the app before browser smoke.
 
-- [ ] **T4 — Verification & closure**
+- [x] **T4 — Verification & closure — DONE 2026-09-30**
   `dotnet build` + `dotnet test` (full), browser smoke (user), final commit(s),
   feature-doc evidence refresh.
   *Acceptance:* all checks green or failures recorded honestly.
   *Route:* inline (bounded verification).
+  *Evidence:* build 0 errors (10 warnings, pre-existing Moq.AutoMocker analyzer
+  CS9057); Monitoring 86/86, Enrollment 186/186; browser smoke done by the user
+  (reported 2026-09-30).
 
 ## Acceptance criteria (feature-level)
 
@@ -120,3 +123,5 @@ Welcome to your new app", the header is a bare text link, and the footer is a on
   app.css). Verified: build 0 errors, Enrollment 94/94. Parent spot-check: build
   0 errors + full diff readback + token check. Stale server PID 12484 stopped by
   writer; parent restarts before smoke.
+- 2026-09-30 — T4 closed: build 0 errors, Monitoring 86/86, Enrollment 186/186,
+  browser smoke confirmed by the user.

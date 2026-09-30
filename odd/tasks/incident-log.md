@@ -73,7 +73,7 @@ record. The user asked for an incident list as the next task (session 2026-09-27
   build 0 errors + `Incident.cs` boundary readback (no ASP.NET/preview refs).
   *Notes for T3:* `SaveAsync` is INSERT OR REPLACE — generate a fresh `IncidentId`
   per event. *Incident:* stale server PID 20728 stopped by writer (DLL locks).
-- [ ] **T3 — Automatic capture hook** — DONE 2026-09-28: `IIncidentSink`
+- [x] **T3 — Automatic capture hook** — DONE 2026-09-28: `IIncidentSink`
   port (primitives-only, Application never refs Enrollment.Domain) +
   `IncidentSinkAdapter` (Monitoring.Infrastructure, refs Enrollment.Domain) +
   `NotifyExecutor` failure-isolated hook + DI (`TryAddScoped`) + 7 new tests.
@@ -92,7 +92,7 @@ record. The user asked for an incident list as the next task (session 2026-09-27
   (+Enrollment.Domain ref). *Incident:* hosted-service test failed first
   (manual ServiceCollection lacked the new sink) — fixed with
   `Mock.Of<IIncidentSink>()`.
-- [ ] **T4 — Manual report form + `/incidents` list page** — DONE 2026-09-28:
+- [x] **T4 — Manual report form + `/incidents` list page** — DONE 2026-09-28:
   `Incidents.razor` (`/incidents`, InteractiveServer, short-scope pattern per
   Members.razor): manual form (Kind select default ManualNote + Note) writing
   via `IIncidentRepository.SaveAsync`, then list newest-first (limit 100) with
@@ -103,7 +103,7 @@ record. The user asked for an incident list as the next task (session 2026-09-27
   *Route:* direct inline (delegation transport unavailable; 1 new page + 1
   mechanical nav edit). *Evidence:* `Incidents.razor`, `MainLayout.razor`,
   `wwwroot/app.css`; smoke 200 on :5203.
-- [ ] **T5 — Verification & closure** — DONE 2026-09-28: build 0 errors,
+- [x] **T5 — Verification & closure** — DONE 2026-09-28: build 0 errors,
   full tests 174/174 (Enrollment 104 + Monitoring 70), smoke `/incidents` 200
   on :5203 (server stopped after, port free). Feature complete on
   `feat/incident-log` (T1 scope + T2 persistence + T3 hook + T4 UI).
