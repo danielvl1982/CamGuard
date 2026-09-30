@@ -147,6 +147,11 @@
         photoError = null;
         selectionError = null;
 
+        // A new selection replaces the browser's file list, so handles from earlier
+        // selections no longer exist client-side ("There is no file with ID N").
+        // Keeping them would make the next submit fail.
+        photos.Clear();
+
         var added = new List<PhotoEntry>();
         var rejected = new List<string>();
         foreach (var file in e.GetMultipleFiles(int.MaxValue))
