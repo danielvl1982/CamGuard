@@ -313,3 +313,23 @@ the user (session 2026-09-27).
 - 2026-09-27 — T8 closed inline: full build 0 errors, full tests 157/157
   (94 + 63). Manual browser smoke pending (user); RDD re-assessment pending
   user decision (boundary `1bd2117`, 4 prior skips).
+- 2026-09-30 — Real-browser smoke DONE (Playwright chromium vs `dotnet run`, scratch
+  SQLite db and image store, real ONNX face models; repo left clean). All steps PASS:
+  blank-image gate (0 files stored); register with a valid face; `/members` lists it;
+  detail opens and the thumbnail decodes; add a valid image (gallery 1→2, 2 files on
+  disk); add another member's face → rejected ("already registered to Bob Dsc"),
+  nothing stored, and a mixed batch is rejected whole; delete one image (file and
+  `member_images` row gone, gallery 2→1); annul (UI label is "Disable": row leaves the
+  list, `members` row kept with `IsAnnulled = 1`, image records kept).
+  *Bug found and fixed (`fix/member-detail-stale-files`):* on `/members/{id}`, the add
+  form accumulated `IBrowserFile` handles across selections, but the browser replaces
+  its file list on every new selection; submitting then failed with "There is no file
+  with ID N…" (JSException), nothing stored. Fix: `OnAddFilesChangedAsync` clears
+  `selectedPhotos` first, so a new selection replaces the earlier one. Verified with
+  Playwright: rejection then re-pick and submit → "Image added."; two picks without
+  submit → only the last listed; remove and delete regressions pass; 0 JSExceptions in
+  the log. Build 0 errors, tests 272/272 (Enrollment 186 + Monitoring 86). No automated
+  component test (no bUnit in the repo). `Register.razor` (`OnFilesChangedAsync`) has
+  the same accumulate pattern and was NOT changed or verified.
+  RDD re-assessment of the old range (boundary `1bd2117`) is closed as recorded debt:
+  later features went through their own review cycles.
