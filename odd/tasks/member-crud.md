@@ -246,7 +246,7 @@ the user (session 2026-09-27).
   warnings: NU1902 OpenTelemetry + CS9057 Moq.AutoMocker); full `dotnet test`
   157/157 green (Enrollment 94 + Monitoring 63). Worktree clean, 3 work-unit
   commits: `c6f173a` (T5), `07cb12d` (T6), `c453f39` (T7). Manual browser smoke
-  pending (user). RDD: T1–T4 each assessed medium/`slice_budget_reached` with user
+  done 2026-09-30, all steps PASS (see progress log). RDD: T1–T4 each assessed medium/`slice_budget_reached` with user
   "Skip this time" ×4; T5–T7 closed without re-assessment (boundary still `1bd2117`).
 
 ## Acceptance criteria (feature-level)
@@ -311,8 +311,9 @@ the user (session 2026-09-27).
   all-or-nothing with owner-scoped T3 gate). Verified: build 0 errors,
   Enrollment 94/94. Parent spot-check: build + tests + boundary readback.
 - 2026-09-27 — T8 closed inline: full build 0 errors, full tests 157/157
-  (94 + 63). Manual browser smoke pending (user); RDD re-assessment pending
-  user decision (boundary `1bd2117`, 4 prior skips).
+  (94 + 63). Manual browser smoke was pending here and ran on 2026-09-30 (next entry);
+  RDD re-assessment closed 2026-10-01 by user decision: review left skipped (boundary
+  `1bd2117`, 4 prior skips); the range is already merged to `main`.
 - 2026-09-30 — Real-browser smoke DONE (Playwright chromium vs `dotnet run`, scratch
   SQLite db and image store, real ONNX face models; repo left clean). All steps PASS:
   blank-image gate (0 files stored); register with a valid face; `/members` lists it;
