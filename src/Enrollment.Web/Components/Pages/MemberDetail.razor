@@ -8,7 +8,7 @@
 
 @* InteractiveServer (T6/T7 will add per-image actions here): scoped
    IMemberVectorRepository/IMemberImageRepository are never injected into the
-   circuit (Register.razor/Members.razor precedent) — one short scope is
+   circuit (Members.razor/Roles.razor precedent) — one short scope is
    created per load instead. *@
 <PageTitle>Member details</PageTitle>
 
@@ -204,7 +204,7 @@
             }
             @* T7 add-images form: lives inside the same card so no new
                layout utility classes are needed (all classes below already
-               appear in Register.razor / this page — no Tailwind rebuild). *@
+               appear in Members.razor / this page — no Tailwind rebuild). *@
             <h3 class="mb-1 mt-3 text-xl font-semibold text-text">Add images</h3>
             <p class="mb-2 text-sm text-text-muted">
                 Add one or more photos. Every photo must contain exactly one clearly visible face.
@@ -283,7 +283,7 @@
     [Parameter]
     public Guid Id { get; set; }
 
-    /// <summary>Upper bound per photo; matches the cap enforced by <see cref="IBrowserFile.OpenReadStream(long, CancellationToken)"/> (Register.razor precedent).</summary>
+    /// <summary>Upper bound per photo; matches the cap enforced by <see cref="IBrowserFile.OpenReadStream(long, CancellationToken)"/> (Members.razor precedent).</summary>
     private const long MaxPhotoBytes = 50 * 1024 * 1024;
 
     private const int PreviewMaxDimension = 160;
@@ -682,7 +682,7 @@
                 // Two reasons: Blazor's BrowserFileStream rejects synchronous reads
                 // (the extractor's Image.Load reads synchronously), and a circuit-bound
                 // stream must not stay open across the slow face-extraction call.
-                // Register.razor precedent.
+                // Members.razor precedent.
                 await using var source = photo.File.OpenReadStream(MaxPhotoBytes);
                 var buffer = new MemoryStream();
                 await source.CopyToAsync(buffer);
@@ -690,7 +690,7 @@
                 streams.Add(buffer);
             }
 
-            // One short scope per submit (Register/Members precedent): resolving the
+            // One short scope per submit (Members/Roles precedent): resolving the
             // handler from the circuit's own scope would pin its scoped dependencies
             // for the whole circuit lifetime.
             using var scope = ScopeFactory.CreateScope();

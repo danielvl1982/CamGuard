@@ -20,8 +20,8 @@ Design adjustment requested by the user (2026-10-01): make `/members` follow the
 - Delivery strategy: `ask-on-risk`, expected single PR; revisit if the running count passes ~400 authored changed lines.
 
 ## Tasks
-- [ ] T1 Home: drop Register card and hero button, drop the roles preview section, keep Members + Roles cards and incidents. Route: inline (one understood file).
-- [ ] T2 Members page absorbs the registration form; delete `Register.razor`; remove the nav link; fix `/register` links in `MemberDetail.razor`. Route: delegated writer (2+ non-trivial files, reading prepares the write).
+- [x] T1 Home: drop Register card and hero button, drop the roles preview section, keep Members + Roles cards and incidents. Route: inline (one understood file). Commits bc531fa, 16770b9 (the second drops the hero CTA that native review flagged as a BLOCKER on the isolated T1 range).
+- [x] T2 Members page absorbs the registration form; delete `Register.razor`; remove the nav link; fix `/register` links in `MemberDetail.razor`. Route: delegated writer (2+ non-trivial files, reading prepares the write). Writer observed: web project builds with 0 errors/0 warnings (full solution build blocked by the user's running Enrollment.Web locking DLLs, so an alternate OutDir was used); Enrollment 186 + Monitoring 86 tests green; no `/register` leftovers in src/tests.
 - [ ] T3 Verification: build, full tests, browser smoke (nav, Home, register from `/members`, list refresh, member detail links).
 
 ## Acceptance
@@ -32,3 +32,5 @@ Design adjustment requested by the user (2026-10-01): make `/members` follow the
 
 ## Progress log
 - 2026-10-01 — Feature doc created from the user's request; branch `feat/members-page-grouping`.
+- 2026-10-01 — T1 native review (medium): reliability lens found one BLOCKER on the isolated T1 range (hero CTA left pointing to /members before T2 existed). Corrected in 16770b9; the post-correction STATUS then stopped with `captured_artifacts_unverifiable` (terminal), so that lineage was not acknowledged. Delivery follows ordinary policy.
+- 2026-10-01 — T2 landed (Members.razor absorbs the form, Register.razor and nav link removed). Pending: T3 browser smoke (user's running app holds old code).
