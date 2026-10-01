@@ -16,6 +16,22 @@
       "sessions": 2,
       "memories": 3,
       "prompts": 0
+    },
+    {
+      "id": "b34cb691",
+      "created_by": "danielvl",
+      "created_at": "2026-10-01T13:45:25Z",
+      "sessions": 3,
+      "memories": 2,
+      "prompts": 0
+    },
+    {
+      "id": "65845137",
+      "created_by": "daval",
+      "created_at": "2026-10-01T13:48:39.1638197Z",
+      "sessions": 12,
+      "memories": 55,
+      "prompts": 1
     }
   ]
 }
