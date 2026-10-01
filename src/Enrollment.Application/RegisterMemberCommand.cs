@@ -37,7 +37,7 @@ public sealed record RegisterMemberCommand
 /// image-store failure fails the whole registration (<see cref="RegisterMemberError.ImageStoreFailed"/>)
 /// BEFORE the member record is written, so no member is ever persisted without its images.
 /// Submitted photo streams are copied, never disposed (the caller owns disposal, e.g.
-/// <c>Register.razor</c>'s finally block), and are left positioned at 0.
+/// <c>Members.razor</c>'s finally block), and are left positioned at 0.
 /// </summary>
 public sealed class RegisterMemberCommandHandler(
     IFaceEmbeddingExtractor faceEmbeddingExtractor,
