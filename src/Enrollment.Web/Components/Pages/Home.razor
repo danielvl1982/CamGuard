@@ -168,8 +168,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadIncidentsAsync();
-        await LoadRolesAsync();
+        // Independent loads, each in its own scope and with its own error state.
+        await Task.WhenAll(LoadIncidentsAsync(), LoadRolesAsync());
     }
 
     private static string DescribeChannels(IReadOnlySet<NotificationChannel> channels) =>
