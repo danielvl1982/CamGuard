@@ -1,6 +1,7 @@
 ﻿@page "/"
 @rendermode InteractiveServer
 
+@using Enrollment.Application
 @using Enrollment.Domain
 @inject IServiceScopeFactory ScopeFactory
 @inject ILogger<Home> Logger
@@ -27,6 +28,10 @@
     <a href="/members" class="block rounded-lg border border-border bg-elevated p-6 transition-all duration-150 hover:border-border-strong motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-lg">
         <h2 class="text-lg font-semibold text-text">Members</h2>
         <p class="mt-2 text-sm text-text-muted">Browse and manage the enrolled members.</p>
+    </a>
+    <a href="/roles" class="block rounded-lg border border-border bg-elevated p-6 transition-all duration-150 hover:border-border-strong motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-lg">
+        <h2 class="text-lg font-semibold text-text">Roles</h2>
+        <p class="mt-2 text-sm text-text-muted">Choose how each role is notified when a member is recognized.</p>
     </a>
 </section>
 
@@ -95,12 +100,62 @@
     </div>
 </section>
 
+<section class="mt-8 rounded-lg border border-border bg-elevated p-6 transition-all duration-150 hover:border-border-strong motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-lg" aria-label="Roles">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-lg font-semibold text-text">Roles</h2>
+        <a href="/roles" class="text-sm font-semibold text-accent transition-colors hover:text-accent-hover">Manage roles →</a>
+    </div>
+
+    <div class="mt-4" aria-live="polite">
+        @if (rolesLoading)
+        {
+            <p class="text-sm text-text-muted" role="status">Loading roles…</p>
+        }
+        else if (rolesError is not null)
+        {
+            <p class="validation-message text-sm" role="alert">@rolesError</p>
+        }
+        else if (roles is not { Count: > 0 })
+        {
+            <div class="rounded-lg border border-border bg-surface p-6 text-center" role="status">
+                <p class="text-text-muted">No roles have been created yet.</p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto rounded-lg border border-border bg-surface">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-elevated text-left">
+                            <th scope="col" class="px-4 py-3 font-semibold text-text">Role</th>
+                            <th scope="col" class="px-4 py-3 font-semibold text-text">Channels</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var role in roles)
+                        {
+                            <tr @key="role.Id" class="border-t border-border">
+                                <td class="px-4 py-3 text-text">@role.Name</td>
+                                <td class="px-4 py-3 text-text-muted">@DescribeChannels(role.Channels)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>
+
 @code {
     private const int PreviewLimit = 20;
 
     private IReadOnlyList<Incident>? incidents;
     private string? loadError;
     private bool isLoading = true;
+
+    private IReadOnlyList<Role>? roles;
+    private string? rolesError;
+    private bool rolesLoading = true;
     private string kindFilter = "";
     private string? noteFilter;
 
@@ -112,6 +167,36 @@
             .ToList();
 
     protected override async Task OnInitializedAsync()
+    {
+        await LoadIncidentsAsync();
+        await LoadRolesAsync();
+    }
+
+    private static string DescribeChannels(IReadOnlySet<NotificationChannel> channels) =>
+        channels.Count == 0
+            ? "No notifications"
+            : string.Join(", ", channels.Order().Select(c => c.ToString()));
+
+    private async Task LoadRolesAsync()
+    {
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var list = scope.ServiceProvider.GetRequiredService<ListRolesQueryHandler>();
+            roles = await list.HandleAsync(new ListRolesQuery(), CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load the roles preview on Home.");
+            rolesError = "The roles could not be loaded. Refresh the page to try again.";
+        }
+        finally
+        {
+            rolesLoading = false;
+        }
+    }
+
+    private async Task LoadIncidentsAsync()
     {
         try
         {
