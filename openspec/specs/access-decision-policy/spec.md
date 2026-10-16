@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Current behavior is documented in [docs/features/access-decision-policy.md](../../../docs/features/access-decision-policy.md).
+
 Defines the deterministic access decision made from a forwarded cosine-distance value: two named, configured distance thresholds (`AllowedMaxDistance`, `DeniedMinDistance`) partition the distance range into exactly three outcomes (`Allowed`, `Denied`, `HumanVerificationRequired`). Also defines mandatory startup validation of threshold configuration.
 
 ## Requirements

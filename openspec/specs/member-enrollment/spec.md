@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Current behavior is documented in [docs/features/member-enrollment.md](../../../docs/features/member-enrollment.md).
+
 Defines the behavior of registering an authorized member into the local face-embedding vector store from identity data and one or more reference photos, so a later Monitoring pipeline can identify that member. Covers input acceptance, face-detection gating, embedding extraction, and vector persistence. Decision-policy behavior (Allowed/Denied/HumanVerificationRequired) belongs to the deferred `monitoring-pipeline` change and is out of scope here.
 
 ## Requirements

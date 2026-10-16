@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Current behavior is documented in [docs/features/person-detection.md](../../../docs/features/person-detection.md).
+
 Defines person-presence detection for an ingested image using a face detector as a presence proxy: one or more detected faces proceed to identity verification, and zero detected faces MUST route to human verification rather than being ignored or silently dropped.
 
 ## Requirements

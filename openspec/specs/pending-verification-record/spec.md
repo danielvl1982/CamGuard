@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Current behavior is documented in [docs/features/pending-verification-record.md](../../../docs/features/pending-verification-record.md).
+
 Defines the terminal `PendingVerification` record persisted whenever a workflow run resolves `HumanVerificationRequired`, whether from person-detection's zero-face path or access-decision-policy's mid-threshold path. The record is a completion artifact for a bounded, independent workflow run, not a suspended/resumable workflow. Automatic resolution and any resolution UI/API are out of scope.
 
 ## Requirements

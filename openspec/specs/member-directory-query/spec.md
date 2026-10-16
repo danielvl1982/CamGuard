@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Current behavior is documented in [docs/features/member-directory-query.md](../../../docs/features/member-directory-query.md).
+
 Defines the public-API contract `IMemberDirectoryReader` exposed by the `Enrollment` module: given a face embedding, deterministically return the closest enrolled member and similarity score, or an explicit no-match result. This contract is consumed later by the deferred `monitoring-pipeline` change; decision-policy behavior (Allowed/Denied/HumanVerificationRequired) is out of scope here.
 
 ## Requirements

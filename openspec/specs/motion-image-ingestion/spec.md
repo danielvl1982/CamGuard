@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Current behavior is documented in [docs/features/motion-image-ingestion.md](../../../docs/features/motion-image-ingestion.md).
+
 Defines folder-watch ingestion of dropped images: detect new files, wait until each is stable (not locked/partially written), run exactly one independent workflow per validated file, and archive the file on completion. Detection/verification/decision/notification behavior is out of scope here.
 
 ## Requirements

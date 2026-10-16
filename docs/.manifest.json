@@ -1,0 +1,176 @@
+{
+  "framework_version": "1.0",
+  "project": "camguard",
+  "docs_language": "es",
+  "documented_commit": "d21147a444a8591e811115c08a3430fabcabaf90",
+  "updated_at": "2026-10-16",
+  "state": {
+    "mode": "baseline",
+    "codegraph": "available",
+    "sdd": {
+      "openspec_config": "openspec/config.yaml",
+      "odd_logbooks": [],
+      "other_sdd": null
+    },
+    "gaps": [],
+    "stale": []
+  },
+  "sections": {
+    "arquitectura": {
+      "path": "docs/arquitectura.md"
+    },
+    "datos": {
+      "path": "docs/datos.md"
+    },
+    "configuracion": {
+      "path": "docs/configuracion.md"
+    },
+    "operaciones": {
+      "path": "docs/operaciones.md"
+    },
+    "api": {
+      "path": "docs/api.md"
+    }
+  },
+  "references": [],
+  "features": [
+    {
+      "id": "F1",
+      "slug": "member-management",
+      "title": "Member management",
+      "tickets": [],
+      "doc": "docs/features/member-management.md",
+      "spec": "openspec/specs/member-management/spec.md",
+      "entry_points": [
+        "src/Enrollment.Web/Components/Pages/Members.razor:1",
+        "src/Enrollment.Web/Components/Pages/MemberDetail.razor:1",
+        "src/Enrollment.Web/MemberImageEndpoints.cs:22"
+      ]
+    },
+    {
+      "id": "F2",
+      "slug": "role-notification-configuration",
+      "title": "Role and notification-channel configuration",
+      "tickets": [],
+      "doc": "docs/features/role-notification-configuration.md",
+      "spec": "openspec/specs/role-notification-configuration/spec.md",
+      "entry_points": [
+        "src/Enrollment.Web/Components/Pages/Roles.razor:1"
+      ]
+    },
+    {
+      "id": "F3",
+      "slug": "incident-log",
+      "title": "Incident log and manual reporting",
+      "tickets": [],
+      "doc": "docs/features/incident-log.md",
+      "spec": "openspec/specs/incident-log/spec.md",
+      "entry_points": [
+        "src/Enrollment.Web/Components/Pages/Incidents.razor:1"
+      ]
+    },
+    {
+      "id": "F4",
+      "slug": "folder-monitoring",
+      "title": "Watched-image monitoring workflow",
+      "tickets": [],
+      "doc": "docs/features/folder-monitoring.md",
+      "spec": "openspec/specs/folder-monitoring/spec.md",
+      "entry_points": [
+        "src/Monitoring.Infrastructure/MonitoringHostedService.cs:26-30"
+      ]
+    },
+    {
+      "id": "F5",
+      "slug": "home-dashboard",
+      "title": "Home dashboard",
+      "tickets": [],
+      "doc": "docs/features/home-dashboard.md",
+      "spec": "openspec/specs/home-dashboard/spec.md",
+      "entry_points": [
+        "src/Enrollment.Web/Components/Pages/Home.razor:1"
+      ]
+    },
+    {
+      "id": "-",
+      "slug": "access-decision-policy",
+      "title": "Access Decision Policy (associated capability)",
+      "tickets": [],
+      "doc": "docs/features/access-decision-policy.md",
+      "spec": "openspec/specs/access-decision-policy/spec.md",
+      "entry_points": []
+    },
+    {
+      "id": "-",
+      "slug": "access-notification",
+      "title": "Access Notification (associated capability)",
+      "tickets": [],
+      "doc": "docs/features/access-notification.md",
+      "spec": "openspec/specs/access-notification/spec.md",
+      "entry_points": []
+    },
+    {
+      "id": "-",
+      "slug": "enrollment-watch-ingestion",
+      "title": "Enrollment Watch Ingestion (associated capability)",
+      "tickets": [],
+      "doc": "docs/features/enrollment-watch-ingestion.md",
+      "spec": "openspec/specs/enrollment-watch-ingestion/spec.md",
+      "entry_points": []
+    },
+    {
+      "id": "-",
+      "slug": "identity-verification",
+      "title": "Identity Verification (associated capability)",
+      "tickets": [],
+      "doc": "docs/features/identity-verification.md",
+      "spec": "openspec/specs/identity-verification/spec.md",
+      "entry_points": []
+    },
+    {
+      "id": "-",
+      "slug": "member-directory-query",
+      "title": "Member Directory Query (associated capability)",
+      "tickets": [],
+      "doc": "docs/features/member-directory-query.md",
+      "spec": "openspec/specs/member-directory-query/spec.md",
+      "entry_points": []
+    },
+    {
+      "id": "-",
+      "slug": "member-enrollment",
+      "title": "Member Enrollment (associated capability)",
+      "tickets": [],
+      "doc": "docs/features/member-enrollment.md",
+      "spec": "openspec/specs/member-enrollment/spec.md",
+      "entry_points": []
+    },
+    {
+      "id": "-",
+      "slug": "motion-image-ingestion",
+      "title": "Motion Image Ingestion (associated capability)",
+      "tickets": [],
+      "doc": "docs/features/motion-image-ingestion.md",
+      "spec": "openspec/specs/motion-image-ingestion/spec.md",
+      "entry_points": []
+    },
+    {
+      "id": "-",
+      "slug": "pending-verification-record",
+      "title": "Pending Verification Record (associated capability)",
+      "tickets": [],
+      "doc": "docs/features/pending-verification-record.md",
+      "spec": "openspec/specs/pending-verification-record/spec.md",
+      "entry_points": []
+    },
+    {
+      "id": "-",
+      "slug": "person-detection",
+      "title": "Person Detection (associated capability)",
+      "tickets": [],
+      "doc": "docs/features/person-detection.md",
+      "spec": "openspec/specs/person-detection/spec.md",
+      "entry_points": []
+    }
+  ]
+}

@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Current behavior is documented in [docs/features/access-notification.md](../../../docs/features/access-notification.md).
+
 Defines `INotificationService` firing an `AccessAlert` for every access-decision outcome (including `Allowed`), and defines that a notification failure MUST NOT crash the pipeline. In Development environments, notifications are logged via `LoggingNotificationService`. In Production and other non-Development environments, notifications are delivered through real channels (ntfy push and SMTP email), with per-channel failure isolation to prevent one channel's misconfiguration or outage from blocking the other.
 
 ## Requirements

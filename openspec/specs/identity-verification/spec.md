@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Current behavior is documented in [docs/features/identity-verification.md](../../../docs/features/identity-verification.md).
+
 Defines how a detected face's embedding is checked against the enrolled member directory via `IMemberDirectoryReader`, and how the returned `Score` field MUST be interpreted as cosine DISTANCE (lower value = closer match), never as a similarity score. Decision thresholds and outcome resolution belong to `access-decision-policy`; this capability is responsible for querying and correctly forwarding the distance.
 
 ## Requirements

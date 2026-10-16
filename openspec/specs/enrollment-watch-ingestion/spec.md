@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Current behavior is documented in [docs/features/enrollment-watch-ingestion.md](../../../docs/features/enrollment-watch-ingestion.md).
+
 Isolated folder-watch ingestion for enrollment photos in `photos/enroll`, separate from `motion-image-ingestion` (`photos/watch`). Covers detection, stability gate, per-file `FullName` prompt with watcher pause, and `processed/`/`quarantine/` archival.
 
 ## Requirements
